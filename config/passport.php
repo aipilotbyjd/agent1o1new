@@ -34,6 +34,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Password Grant Client
+    |--------------------------------------------------------------------------
+    |
+    | These values are used by the AuthController to issue tokens via the
+    | Passport password grant. Set them in your .env file.
+    |
+    */
+
+    'password_client_id' => env('PASSPORT_PASSWORD_CLIENT_ID'),
+
+    'password_client_secret' => env('PASSPORT_PASSWORD_CLIENT_SECRET'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Passport Database Connection
     |--------------------------------------------------------------------------
     |
