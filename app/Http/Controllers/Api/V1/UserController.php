@@ -44,9 +44,12 @@ class UserController extends Controller
     {
         $user = $request->user();
 
+        /** @var \Laravel\Passport\Token $currentToken */
+        $currentToken = $user->token();
+
         $user->update(['password' => $request->validated('password')]);
 
-        $this->tokenService->revokeOtherTokens($user, $user->token());
+        $this->tokenService->revokeOtherTokens($user, $currentToken);
 
         return $this->successResponse('Password changed successfully.');
     }
