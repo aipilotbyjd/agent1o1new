@@ -92,11 +92,11 @@ class Workflow extends Model
     }
 
     /**
-     * @return HasMany<WorkflowExecution, $this>
+     * @return HasMany<Execution, $this>
      */
     public function executions(): HasMany
     {
-        return $this->hasMany(WorkflowExecution::class);
+        return $this->hasMany(Execution::class);
     }
 
     /**
@@ -105,5 +105,15 @@ class Workflow extends Model
     public function webhooks(): HasMany
     {
         return $this->hasMany(Webhook::class);
+    }
+
+    public function activate(): void
+    {
+        $this->update(['is_active' => true]);
+    }
+
+    public function deactivate(): void
+    {
+        $this->update(['is_active' => false]);
     }
 }

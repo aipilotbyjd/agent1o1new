@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Workspace extends Model
 {
@@ -43,5 +44,21 @@ class Workspace extends Model
         return $this->belongsToMany(User::class, 'workspace_members')
             ->withPivot('role', 'joined_at')
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Invitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(Invitation::class);
+    }
+
+    /**
+     * @return HasMany<Workflow, $this>
+     */
+    public function workflows(): HasMany
+    {
+        return $this->hasMany(Workflow::class);
     }
 }
