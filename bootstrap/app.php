@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ResolveWorkspaceRole;
 use App\Http\Response\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ]);
+
+        $middleware->alias([
+            'workspace.role' => ResolveWorkspaceRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
