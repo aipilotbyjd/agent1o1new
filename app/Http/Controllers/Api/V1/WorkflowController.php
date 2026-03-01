@@ -82,7 +82,6 @@ class WorkflowController extends Controller
     public function show(Workspace $workspace, Workflow $workflow): JsonResponse
     {
         $this->can(Permission::WorkflowView);
-        $this->ensureBelongsToWorkspace($workflow, $workspace);
 
         $workflow->load('creator');
 
@@ -97,7 +96,6 @@ class WorkflowController extends Controller
      */
     public function update(UpdateWorkflowRequest $request, Workspace $workspace, Workflow $workflow): JsonResponse
     {
-        $this->ensureBelongsToWorkspace($workflow, $workspace);
 
         $workflow = $this->workflowService->update($workflow, $request->validated());
         $workflow->load('creator');
@@ -114,7 +112,6 @@ class WorkflowController extends Controller
     public function destroy(Workspace $workspace, Workflow $workflow): JsonResponse
     {
         $this->can(Permission::WorkflowDelete);
-        $this->ensureBelongsToWorkspace($workflow, $workspace);
 
         $this->workflowService->delete($workflow);
 
@@ -127,7 +124,6 @@ class WorkflowController extends Controller
     public function activate(Workspace $workspace, Workflow $workflow): JsonResponse
     {
         $this->can(Permission::WorkflowActivate);
-        $this->ensureBelongsToWorkspace($workflow, $workspace);
 
         $workflow->activate();
         $workflow->load('creator');
@@ -144,7 +140,6 @@ class WorkflowController extends Controller
     public function deactivate(Workspace $workspace, Workflow $workflow): JsonResponse
     {
         $this->can(Permission::WorkflowActivate);
-        $this->ensureBelongsToWorkspace($workflow, $workspace);
 
         $workflow->deactivate();
         $workflow->load('creator');
@@ -161,7 +156,6 @@ class WorkflowController extends Controller
     public function duplicate(Request $request, Workspace $workspace, Workflow $workflow): JsonResponse
     {
         $this->can(Permission::WorkflowCreate);
-        $this->ensureBelongsToWorkspace($workflow, $workspace);
 
         $newWorkflow = $this->workflowService->duplicate($workflow, $request->user());
         $newWorkflow->load('creator');
@@ -171,12 +165,5 @@ class WorkflowController extends Controller
             new WorkflowResource($newWorkflow),
             201,
         );
-    }
-
-    private function ensureBelongsToWorkspace(Workflow $workflow, Workspace $workspace): void
-    {
-        if ($workflow->workspace_id !== $workspace->id) {
-            abort(404, 'Workflow not found.');
-        }
     }
 }

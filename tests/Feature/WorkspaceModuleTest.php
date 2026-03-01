@@ -145,7 +145,7 @@ test('member can leave a workspace', function () {
     $workspace->members()->attach($member->id, ['role' => Role::Member->value, 'joined_at' => now()]);
 
     $response = $this->actingAs($member, 'api')
-        ->postJson("/api/v1/workspaces/{$workspace->id}/members/leave");
+        ->postJson("/api/v1/workspaces/{$workspace->id}/leave");
 
     $response->assertOk();
     $this->assertDatabaseMissing('workspace_members', ['user_id' => $member->id, 'workspace_id' => $workspace->id]);
@@ -155,7 +155,7 @@ test('owner cannot leave workspace', function () {
     [$owner, $workspace] = createOwnerWithWorkspace();
 
     $response = $this->actingAs($owner, 'api')
-        ->postJson("/api/v1/workspaces/{$workspace->id}/members/leave");
+        ->postJson("/api/v1/workspaces/{$workspace->id}/leave");
 
     $response->assertStatus(403);
 });

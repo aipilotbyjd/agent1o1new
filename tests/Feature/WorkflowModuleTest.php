@@ -104,7 +104,7 @@ test('owner can activate a workflow', function () {
     $workflow = createWorkflow($workspace, $owner);
 
     $response = $this->actingAs($owner, 'api')
-        ->patchJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/activate");
+        ->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/activate");
 
     $response->assertOk()
         ->assertJsonPath('data.is_active', true);
@@ -115,7 +115,7 @@ test('owner can deactivate a workflow', function () {
     $workflow = createWorkflow($workspace, $owner, ['is_active' => true]);
 
     $response = $this->actingAs($owner, 'api')
-        ->patchJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/deactivate");
+        ->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/deactivate");
 
     $response->assertOk()
         ->assertJsonPath('data.is_active', false);

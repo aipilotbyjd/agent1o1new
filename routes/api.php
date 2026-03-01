@@ -1,5 +1,26 @@
 <?php
 
+/*
+|--------------------------------------------------------------------------
+| API Routes — LinkFlow v1
+|--------------------------------------------------------------------------
+|
+| Route layers (outermost → innermost):
+|
+|   1. Public        — No auth required (health, plans, webhooks)
+|   2. Guest         — Auth routes for unauthenticated users (login, register)
+|   3. Authenticated — Requires valid access token (auth:api)
+|   4. Workspace     — Requires membership + resolves role/permissions ONCE
+|                      via 'workspace.role' middleware. All nested models are
+|                      scoped to the workspace via scopeBindings().
+|
+| Authorization strategy:
+|   - 'workspace.role' middleware loads permissions once per request
+|   - Controllers use $this->can(Permission::...) for authorization
+|   - Form Requests check permissions in authorize() method
+|
+*/
+
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -8,70 +29,193 @@ use App\Http\Controllers\Api\V1\WorkspaceController;
 use App\Http\Controllers\Api\V1\WorkspaceMemberController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API V1 Routes
-|--------------------------------------------------------------------------
-*/
+Route::prefix('v1')->as('v1.')->group(function () {
 
-Route::prefix('v1')->group(function (): void {
+    /*
+    |----------------------------------------------------------------------
+    | Public — No authentication required
+    |----------------------------------------------------------------------
+    */
 
-    // ── Auth (public) ────────────────────────────────────
-    Route::prefix('auth')->group(function (): void {
-        Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('api.v1.auth.register');
-        Route::post('login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('api.v1.auth.login');
-        Route::post('refresh', [AuthController::class, 'refresh'])->middleware('throttle:10,1')->name('api.v1.auth.refresh');
-        Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1')->name('api.v1.auth.forgot-password');
-        Route::post('reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('api.v1.auth.reset-password');
-        Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware('signed')->name('verification.verify');
-    });
+    Route::get('health', fn () => response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toIso8601String(),
+    ]))->name('health');
 
-    // ── Authenticated ────────────────────────────────────
-    Route::middleware('auth:api')->group(function (): void {
-        Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.v1.auth.logout');
-        Route::post('auth/resend-verification', [AuthController::class, 'resendVerificationEmail'])->middleware('throttle:3,1')->name('api.v1.auth.resend-verification');
+    Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+        ->middleware('signed')
+        ->name('verification.verify');
 
-        // ── User Profile ────────────────────────────────
-        Route::get('me', [UserController::class, 'me'])->name('api.v1.user.me');
-        Route::put('me', [UserController::class, 'update'])->name('api.v1.user.update');
-        Route::put('me/password', [UserController::class, 'changePassword'])->name('api.v1.user.change-password');
-        Route::post('me/avatar', [UserController::class, 'uploadAvatar'])->name('api.v1.user.upload-avatar');
-        Route::delete('me/avatar', [UserController::class, 'deleteAvatar'])->name('api.v1.user.delete-avatar');
-        Route::delete('me', [UserController::class, 'destroy'])->name('api.v1.user.destroy');
+    /*
+    |----------------------------------------------------------------------
+    | Guest — Authentication routes (unauthenticated users only)
+    |----------------------------------------------------------------------
+    */
 
-        // ── Workspaces ───────────────────────────────────
-        Route::get('workspaces', [WorkspaceController::class, 'index'])->name('api.v1.workspaces.index');
-        Route::post('workspaces', [WorkspaceController::class, 'store'])->name('api.v1.workspaces.store');
-
-        Route::middleware('workspace.role')->prefix('workspaces/{workspace}')->group(function (): void {
-            Route::get('/', [WorkspaceController::class, 'show'])->name('api.v1.workspaces.show');
-            Route::put('/', [WorkspaceController::class, 'update'])->name('api.v1.workspaces.update');
-            Route::delete('/', [WorkspaceController::class, 'destroy'])->name('api.v1.workspaces.destroy');
-
-            // ── Members ──────────────────────────────────
-            Route::get('members', [WorkspaceMemberController::class, 'index'])->name('api.v1.workspaces.members.index');
-            Route::put('members/{user}', [WorkspaceMemberController::class, 'update'])->name('api.v1.workspaces.members.update');
-            Route::delete('members/{user}', [WorkspaceMemberController::class, 'destroy'])->name('api.v1.workspaces.members.destroy');
-            Route::post('members/leave', [WorkspaceMemberController::class, 'leave'])->name('api.v1.workspaces.members.leave');
-
-            // ── Workflows ────────────────────────────────
-            Route::get('workflows', [WorkflowController::class, 'index'])->name('api.v1.workspaces.workflows.index');
-            Route::post('workflows', [WorkflowController::class, 'store'])->name('api.v1.workspaces.workflows.store');
-            Route::get('workflows/{workflow}', [WorkflowController::class, 'show'])->name('api.v1.workspaces.workflows.show');
-            Route::put('workflows/{workflow}', [WorkflowController::class, 'update'])->name('api.v1.workspaces.workflows.update');
-            Route::delete('workflows/{workflow}', [WorkflowController::class, 'destroy'])->name('api.v1.workspaces.workflows.destroy');
-            Route::patch('workflows/{workflow}/activate', [WorkflowController::class, 'activate'])->name('api.v1.workspaces.workflows.activate');
-            Route::patch('workflows/{workflow}/deactivate', [WorkflowController::class, 'deactivate'])->name('api.v1.workspaces.workflows.deactivate');
-            Route::post('workflows/{workflow}/duplicate', [WorkflowController::class, 'duplicate'])->name('api.v1.workspaces.workflows.duplicate');
-
-            // ── Invitations ──────────────────────────────
-            Route::get('invitations', [InvitationController::class, 'index'])->name('api.v1.workspaces.invitations.index');
-            Route::post('invitations', [InvitationController::class, 'store'])->name('api.v1.workspaces.invitations.store');
-            Route::delete('invitations/{invitation}', [InvitationController::class, 'destroy'])->name('api.v1.workspaces.invitations.destroy');
+    Route::prefix('auth')
+        ->as('auth.')
+        ->middleware('throttle:auth')
+        ->group(function () {
+            Route::post('register', [AuthController::class, 'register'])->name('register');
+            Route::post('login', [AuthController::class, 'login'])->name('login');
+            Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh');
+            Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
+            Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('reset-password');
         });
 
-        // ── Invitation Accept/Decline (not workspace-scoped) ─
-        Route::post('invitations/{token}/accept', [InvitationController::class, 'accept'])->name('api.v1.invitations.accept');
-        Route::post('invitations/{token}/decline', [InvitationController::class, 'decline'])->name('api.v1.invitations.decline');
+    /*
+    |----------------------------------------------------------------------
+    | Authenticated — Requires valid access token
+    |----------------------------------------------------------------------
+    */
+
+    Route::middleware('auth:api')->group(function () {
+
+        // ── Auth (post-login) ────────────────────────────────────────
+
+        Route::prefix('auth')->as('auth.')->group(function () {
+            Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+            Route::post('resend-verification-email', [AuthController::class, 'resendVerificationEmail'])->name('resend-verification');
+        });
+
+        // ── User Profile ─────────────────────────────────────────────
+
+        Route::prefix('user')->as('user.')->group(function () {
+            Route::get('/', [UserController::class, 'me'])->name('show');
+            Route::put('/', [UserController::class, 'update'])->name('update');
+            Route::delete('/', [UserController::class, 'destroy'])->name('destroy');
+            Route::put('password', [UserController::class, 'changePassword'])->name('password');
+            Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('avatar.upload');
+            Route::delete('avatar', [UserController::class, 'deleteAvatar'])->name('avatar.delete');
+        });
+
+        // ── Invitations (accept/decline — no workspace context needed) ─
+
+        Route::prefix('invitations/{token}')->as('invitations.')->group(function () {
+            Route::post('accept', [InvitationController::class, 'accept'])->name('accept');
+            Route::post('decline', [InvitationController::class, 'decline'])->name('decline');
+        });
+
+        // ── Workspaces (list + create — no membership needed) ────────
+
+        Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
+        Route::post('workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
+
+        /*
+        |------------------------------------------------------------------
+        | Workspace-Scoped — Requires membership
+        |------------------------------------------------------------------
+        |
+        | Middleware: 'workspace.role'
+        |   → Verifies user is a member of the workspace
+        |   → Loads role + permissions ONCE, caches on $request->attributes
+        |   → Controllers use $this->can(Permission::...) for checks
+        |
+        | scopeBindings():
+        |   → All nested model bindings ({workflow}, {credential}, etc.)
+        |     are automatically scoped to {workspace}. Prevents cross-
+        |     workspace data access at the routing layer.
+        |
+        */
+
+        Route::prefix('workspaces/{workspace}')->as('workspaces.')
+            ->middleware('workspace.role')
+            ->scopeBindings()
+            ->group(function () {
+
+                // ── Workspace CRUD ───────────────────────────────────
+
+                Route::get('/', [WorkspaceController::class, 'show'])->name('show');
+                Route::put('/', [WorkspaceController::class, 'update'])->name('update');
+                Route::delete('/', [WorkspaceController::class, 'destroy'])->name('destroy');
+
+                // ── Members ──────────────────────────────────────────
+
+                Route::prefix('members')->as('members.')->group(function () {
+                    Route::get('/', [WorkspaceMemberController::class, 'index'])->name('index');
+                    Route::put('{user}', [WorkspaceMemberController::class, 'update'])->name('update');
+                    Route::delete('{user}', [WorkspaceMemberController::class, 'destroy'])->name('destroy');
+                });
+
+                Route::post('leave', [WorkspaceMemberController::class, 'leave'])->name('leave');
+
+                // ── Invitations (manage — within workspace) ──────────
+
+                Route::prefix('invitations')->as('invitations.')->group(function () {
+                    Route::get('/', [InvitationController::class, 'index'])->name('index');
+                    Route::post('/', [InvitationController::class, 'store'])->name('store');
+                    Route::delete('{invitation}', [InvitationController::class, 'destroy'])->name('destroy');
+                });
+
+                // ── Workflows ────────────────────────────────────────
+
+                Route::get('workflows', [WorkflowController::class, 'index'])->name('workflows.index');
+                Route::post('workflows', [WorkflowController::class, 'store'])->name('workflows.store');
+                Route::get('workflows/{workflow}', [WorkflowController::class, 'show'])->name('workflows.show');
+                Route::put('workflows/{workflow}', [WorkflowController::class, 'update'])->name('workflows.update');
+                Route::delete('workflows/{workflow}', [WorkflowController::class, 'destroy'])->name('workflows.destroy');
+                Route::post('workflows/{workflow}/activate', [WorkflowController::class, 'activate'])->name('workflows.activate');
+                Route::post('workflows/{workflow}/deactivate', [WorkflowController::class, 'deactivate'])->name('workflows.deactivate');
+                Route::post('workflows/{workflow}/duplicate', [WorkflowController::class, 'duplicate'])->name('workflows.duplicate');
+
+                // ── Workflow Versions ────────────────────────────────
+                // (Module 3 — routes will be added here)
+
+                // ── Credentials ──────────────────────────────────────
+                // (Module 5 — routes will be added here)
+
+                // ── Executions ───────────────────────────────────────
+                // (Module 7 — routes will be added here)
+
+                // ── Webhooks ─────────────────────────────────────────
+                // (Module 8 — routes will be added here)
+
+                // ── Variables ────────────────────────────────────────
+                // (Module 9 — routes will be added here)
+
+                // ── Tags ─────────────────────────────────────────────
+                // (Module 9 — routes will be added here)
+
+                // ── Activity Logs ────────────────────────────────────
+                // (Module 10 — routes will be added here)
+            });
+
+        /*
+        |------------------------------------------------------------------
+        | Global Catalogs — Authenticated but not workspace-scoped
+        |------------------------------------------------------------------
+        |
+        | These are read-only catalogs that any authenticated user can
+        | browse. They don't belong to any workspace.
+        |
+        */
+
+        // ── Node Types ───────────────────────────────────────────────
+        // (Module 4 — routes will be added here)
+
+        // ── Credential Types ─────────────────────────────────────────
+        // (Module 5 — routes will be added here)
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| External Webhook Receivers — No auth (public-facing)
+|--------------------------------------------------------------------------
+|
+| Incoming webhooks from third-party services (Stripe, GitHub, etc.)
+| hitting user-configured webhook URLs. Identified by UUID, not auth.
+|
+| (Module 8 — WebhookReceiverController will be added here)
+*/
+
+/*
+|--------------------------------------------------------------------------
+| Go Engine Callbacks — Signed requests only
+|--------------------------------------------------------------------------
+|
+| Internal endpoints called by the Go execution engine to report job
+| results back to the API. Verified via HMAC signature, not user auth.
+|
+| (Module 6 — JobCallbackController will be added here)
+*/

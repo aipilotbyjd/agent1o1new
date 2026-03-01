@@ -47,6 +47,16 @@ class Workspace extends Model
     }
 
     /**
+     * Alias for members() — used by scopeBindings() to resolve {user} route parameter.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->members();
+    }
+
+    /**
      * @return HasMany<Invitation, $this>
      */
     public function invitations(): HasMany
