@@ -71,4 +71,12 @@ class Workspace extends Model
     {
         return $this->hasMany(Workflow::class);
     }
+
+    /**
+     * @return HasMany<Credential, $this>
+     */
+    public function credentials(): HasMany
+    {
+        return $this->hasMany(Credential::class);
+    }
 }

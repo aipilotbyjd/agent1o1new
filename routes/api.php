@@ -22,9 +22,14 @@
 */
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CredentialController;
+use App\Http\Controllers\Api\V1\CredentialTypeController;
 use App\Http\Controllers\Api\V1\InvitationController;
+use App\Http\Controllers\Api\V1\NodeCategoryController;
+use App\Http\Controllers\Api\V1\NodeController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\WorkflowController;
+use App\Http\Controllers\Api\V1\WorkflowVersionController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
 use App\Http\Controllers\Api\V1\WorkspaceMemberController;
 use Illuminate\Support\Facades\Route;
@@ -159,10 +164,26 @@ Route::prefix('v1')->as('v1.')->group(function () {
                 Route::post('workflows/{workflow}/duplicate', [WorkflowController::class, 'duplicate'])->name('workflows.duplicate');
 
                 // ── Workflow Versions ────────────────────────────────
-                // (Module 3 — routes will be added here)
+
+                Route::prefix('workflows/{workflow}/versions')->as('workflows.versions.')->group(function () {
+                    Route::get('/', [WorkflowVersionController::class, 'index'])->name('index');
+                    Route::post('/', [WorkflowVersionController::class, 'store'])->name('store');
+                    Route::get('diff', [WorkflowVersionController::class, 'diff'])->name('diff');
+                    Route::get('{version}', [WorkflowVersionController::class, 'show'])->name('show');
+                    Route::post('{version}/publish', [WorkflowVersionController::class, 'publish'])->name('publish');
+                    Route::post('{version}/rollback', [WorkflowVersionController::class, 'rollback'])->name('rollback');
+                });
 
                 // ── Credentials ──────────────────────────────────────
-                // (Module 5 — routes will be added here)
+
+                Route::prefix('credentials')->as('credentials.')->group(function () {
+                    Route::get('/', [CredentialController::class, 'index'])->name('index');
+                    Route::post('/', [CredentialController::class, 'store'])->name('store');
+                    Route::get('{credential}', [CredentialController::class, 'show'])->name('show');
+                    Route::put('{credential}', [CredentialController::class, 'update'])->name('update');
+                    Route::delete('{credential}', [CredentialController::class, 'destroy'])->name('destroy');
+                    Route::post('{credential}/test', [CredentialController::class, 'test'])->name('test');
+                });
 
                 // ── Executions ───────────────────────────────────────
                 // (Module 7 — routes will be added here)
@@ -191,10 +212,23 @@ Route::prefix('v1')->as('v1.')->group(function () {
         */
 
         // ── Node Types ───────────────────────────────────────────────
-        // (Module 4 — routes will be added here)
+
+        Route::prefix('nodes')->as('nodes.')->group(function () {
+            Route::get('/', [NodeController::class, 'index'])->name('index');
+            Route::get('{node}', [NodeController::class, 'show'])->name('show');
+        });
+
+        Route::prefix('node-categories')->as('node-categories.')->group(function () {
+            Route::get('/', [NodeCategoryController::class, 'index'])->name('index');
+            Route::get('{nodeCategory}', [NodeCategoryController::class, 'show'])->name('show');
+        });
 
         // ── Credential Types ─────────────────────────────────────────
-        // (Module 5 — routes will be added here)
+
+        Route::prefix('credential-types')->as('credential-types.')->group(function () {
+            Route::get('/', [CredentialTypeController::class, 'index'])->name('index');
+            Route::get('{credentialType}', [CredentialTypeController::class, 'show'])->name('show');
+        });
     });
 });
 
