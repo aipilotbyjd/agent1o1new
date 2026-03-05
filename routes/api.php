@@ -24,7 +24,9 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CredentialController;
 use App\Http\Controllers\Api\V1\CredentialTypeController;
+use App\Http\Controllers\Api\V1\ExecutionController;
 use App\Http\Controllers\Api\V1\InvitationController;
+use App\Http\Controllers\Api\V1\JobCallbackController;
 use App\Http\Controllers\Api\V1\NodeCategoryController;
 use App\Http\Controllers\Api\V1\NodeController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -186,7 +188,20 @@ Route::prefix('v1')->as('v1.')->group(function () {
                 });
 
                 // ── Executions ───────────────────────────────────────
-                // (Module 7 — routes will be added here)
+
+                Route::post('workflows/{workflow}/execute', [ExecutionController::class, 'store'])->name('workflows.execute');
+                Route::get('workflows/{workflow}/executions', [ExecutionController::class, 'workflowExecutions'])->name('workflows.executions.index');
+
+                Route::prefix('executions')->as('executions.')->group(function () {
+                    Route::get('stats', [ExecutionController::class, 'stats'])->name('stats');
+                    Route::get('/', [ExecutionController::class, 'index'])->name('index');
+                    Route::get('{execution}', [ExecutionController::class, 'show'])->name('show');
+                    Route::delete('{execution}', [ExecutionController::class, 'destroy'])->name('destroy');
+                    Route::get('{execution}/nodes', [ExecutionController::class, 'nodes'])->name('nodes');
+                    Route::get('{execution}/logs', [ExecutionController::class, 'logs'])->name('logs');
+                    Route::post('{execution}/retry', [ExecutionController::class, 'retry'])->name('retry');
+                    Route::post('{execution}/cancel', [ExecutionController::class, 'cancel'])->name('cancel');
+                });
 
                 // ── Webhooks ─────────────────────────────────────────
                 // (Module 8 — routes will be added here)
@@ -251,5 +266,9 @@ Route::prefix('v1')->as('v1.')->group(function () {
 | Internal endpoints called by the Go execution engine to report job
 | results back to the API. Verified via HMAC signature, not user auth.
 |
-| (Module 6 — JobCallbackController will be added here)
 */
+
+Route::prefix('v1/jobs')->as('v1.jobs.')->middleware('engine.signature')->group(function () {
+    Route::post('callback', [JobCallbackController::class, 'handle'])->name('callback');
+    Route::post('progress', [JobCallbackController::class, 'progress'])->name('progress');
+});

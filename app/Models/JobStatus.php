@@ -20,6 +20,13 @@ class JobStatus extends Model
         'completed_at',
     ];
 
+    /**
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'callback_token',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -36,5 +43,39 @@ class JobStatus extends Model
     public function execution(): BelongsTo
     {
         return $this->belongsTo(Execution::class);
+    }
+
+    public function markProcessing(): void
+    {
+        $this->update([
+            'status' => 'processing',
+            'started_at' => now(),
+        ]);
+    }
+
+    public function markCompleted(?array $result = null): void
+    {
+        $this->update([
+            'status' => 'completed',
+            'progress' => 100,
+            'result' => $result,
+            'completed_at' => now(),
+        ]);
+    }
+
+    public function markFailed(?array $error = null): void
+    {
+        $this->update([
+            'status' => 'failed',
+            'error' => $error,
+            'completed_at' => now(),
+        ]);
+    }
+
+    public function updateProgress(int $progress): void
+    {
+        $this->update([
+            'progress' => max(0, min(100, $progress)),
+        ]);
     }
 }

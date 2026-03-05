@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\ResolveWorkspaceRole;
+use App\Http\Middleware\VerifyEngineCallbackSignature;
 use App\Http\Response\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'workspace.role' => ResolveWorkspaceRole::class,
+            'engine.signature' => VerifyEngineCallbackSignature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

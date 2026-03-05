@@ -79,4 +79,12 @@ class Workspace extends Model
     {
         return $this->hasMany(Credential::class);
     }
+
+    /**
+     * @return HasMany<Execution, $this>
+     */
+    public function executions(): HasMany
+    {
+        return $this->hasMany(Execution::class);
+    }
 }

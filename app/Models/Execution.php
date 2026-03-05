@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\ExecutionMode;
+use App\Enums\ExecutionStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Execution extends Model
 {
@@ -38,6 +42,8 @@ class Execution extends Model
     protected function casts(): array
     {
         return [
+            'status' => ExecutionStatus::class,
+            'mode' => ExecutionMode::class,
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
             'estimated_cost_usd' => 'decimal:4',
@@ -47,6 +53,8 @@ class Execution extends Model
             'is_deterministic_replay' => 'boolean',
         ];
     }
+
+    // ── Relationships ─────────────────────────────────────────
 
     /**
      * @return BelongsTo<Workflow, $this>
@@ -77,7 +85,7 @@ class Execution extends Model
      */
     public function nodes(): HasMany
     {
-        return $this->hasMany(ExecutionNode::class);
+        return $this->hasMany(ExecutionNode::class)->orderBy('sequence');
     }
 
     /**
@@ -85,7 +93,7 @@ class Execution extends Model
      */
     public function logs(): HasMany
     {
-        return $this->hasMany(ExecutionLog::class);
+        return $this->hasMany(ExecutionLog::class)->orderBy('logged_at');
     }
 
     /**
@@ -110,5 +118,115 @@ class Execution extends Model
     public function childExecutions(): HasMany
     {
         return $this->hasMany(self::class, 'parent_execution_id');
+    }
+
+    /**
+     * @return HasOne<ExecutionReplayPack, $this>
+     */
+    public function replayPack(): HasOne
+    {
+        return $this->hasOne(ExecutionReplayPack::class);
+    }
+
+    /**
+     * @return HasMany<ConnectorCallAttempt, $this>
+     */
+    public function connectorAttempts(): HasMany
+    {
+        return $this->hasMany(ConnectorCallAttempt::class);
+    }
+
+    /**
+     * @return HasOne<JobStatus, $this>
+     */
+    public function jobStatus(): HasOne
+    {
+        return $this->hasOne(JobStatus::class);
+    }
+
+    // ── State Transitions ─────────────────────────────────────
+
+    public function start(): void
+    {
+        $this->update([
+            'status' => ExecutionStatus::Running,
+            'started_at' => now(),
+        ]);
+    }
+
+    public function complete(?array $resultData = null, ?int $durationMs = null): void
+    {
+        $this->update([
+            'status' => ExecutionStatus::Completed,
+            'finished_at' => now(),
+            'duration_ms' => $durationMs,
+            'result_data' => $resultData,
+        ]);
+    }
+
+    public function fail(?array $error = null, ?int $durationMs = null): void
+    {
+        $this->update([
+            'status' => ExecutionStatus::Failed,
+            'finished_at' => now(),
+            'duration_ms' => $durationMs,
+            'error' => $error,
+        ]);
+    }
+
+    public function cancel(): void
+    {
+        $this->update([
+            'status' => ExecutionStatus::Cancelled,
+            'finished_at' => now(),
+            'duration_ms' => $this->started_at
+                ? (int) $this->started_at->diffInMilliseconds(now())
+                : null,
+        ]);
+    }
+
+    public function canRetry(): bool
+    {
+        return $this->status === ExecutionStatus::Failed
+            && $this->attempt < $this->max_attempts;
+    }
+
+    public function canCancel(): bool
+    {
+        return $this->status->isActive();
+    }
+
+    // ── Scopes ────────────────────────────────────────────────
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    public function scopeByStatus(Builder $query, ExecutionStatus $status): void
+    {
+        $query->where('status', $status);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    public function scopeActive(Builder $query): void
+    {
+        $query->whereIn('status', [
+            ExecutionStatus::Pending,
+            ExecutionStatus::Running,
+            ExecutionStatus::Waiting,
+        ]);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    public function scopeTerminal(Builder $query): void
+    {
+        $query->whereIn('status', [
+            ExecutionStatus::Completed,
+            ExecutionStatus::Failed,
+            ExecutionStatus::Cancelled,
+        ]);
     }
 }
