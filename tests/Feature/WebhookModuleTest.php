@@ -54,7 +54,7 @@ test('owner can create a webhook for a workflow', function () {
     [$owner, $workspace, $workflow] = setupWebhookWorkspace();
 
     $response = $this->actingAs($owner, 'api')
-        ->postJson("/api/v1/workspaces/{$workspace->id}/webhooks/workflows/{$workflow->id}", [
+        ->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/webhook", [
             'methods' => ['POST', 'GET'],
             'auth_type' => 'bearer',
             'auth_config' => ['token' => 'my-secret-token'],
@@ -76,7 +76,7 @@ test('cannot create duplicate webhook for same workflow', function () {
     createWebhook($workspace, $workflow);
 
     $response = $this->actingAs($owner, 'api')
-        ->postJson("/api/v1/workspaces/{$workspace->id}/webhooks/workflows/{$workflow->id}");
+        ->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/webhook");
 
     $response->assertStatus(409);
 });
@@ -169,7 +169,7 @@ test('viewer cannot create a webhook', function () {
     $workspace->members()->attach($viewer->id, ['role' => Role::Viewer->value, 'joined_at' => now()]);
 
     $response = $this->actingAs($viewer, 'api')
-        ->postJson("/api/v1/workspaces/{$workspace->id}/webhooks/workflows/{$workflow->id}");
+        ->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/webhook");
 
     $response->assertStatus(403);
 });
@@ -203,7 +203,7 @@ test('public webhook endpoint triggers execution', function () {
     [$owner, $workspace, $workflow] = setupWebhookWorkspace();
     $webhook = createWebhook($workspace, $workflow);
 
-    $response = $this->postJson("/api/webhook/{$webhook->uuid}", [
+    $response = $this->postJson("/api/v1/webhook/{$webhook->uuid}", [
         'event' => 'order.created',
         'data' => ['id' => 123],
     ]);
@@ -220,7 +220,7 @@ test('public webhook endpoint triggers execution', function () {
 });
 
 test('public webhook with invalid uuid returns 404', function () {
-    $response = $this->postJson('/api/webhook/nonexistent-uuid', ['data' => 'test']);
+    $response = $this->postJson('/api/v1/webhook/nonexistent-uuid', ['data' => 'test']);
 
     $response->assertStatus(404);
 });
@@ -229,7 +229,7 @@ test('inactive webhook returns 410', function () {
     [$owner, $workspace, $workflow] = setupWebhookWorkspace();
     $webhook = createWebhook($workspace, $workflow, ['is_active' => false]);
 
-    $response = $this->postJson("/api/webhook/{$webhook->uuid}", ['data' => 'test']);
+    $response = $this->postJson("/api/v1/webhook/{$webhook->uuid}", ['data' => 'test']);
 
     $response->assertStatus(410);
 });
@@ -238,7 +238,7 @@ test('webhook with wrong HTTP method returns 405', function () {
     [$owner, $workspace, $workflow] = setupWebhookWorkspace();
     $webhook = createWebhook($workspace, $workflow, ['methods' => ['POST']]);
 
-    $response = $this->getJson("/api/webhook/{$webhook->uuid}");
+    $response = $this->getJson("/api/v1/webhook/{$webhook->uuid}");
 
     $response->assertStatus(405);
 });
@@ -251,11 +251,11 @@ test('webhook with bearer auth rejects unauthorized requests', function () {
     ]);
 
     // Without token
-    $response = $this->postJson("/api/webhook/{$webhook->uuid}", ['data' => 'test']);
+    $response = $this->postJson("/api/v1/webhook/{$webhook->uuid}", ['data' => 'test']);
     $response->assertStatus(401);
 
     // With wrong token
-    $response = $this->postJson("/api/webhook/{$webhook->uuid}", ['data' => 'test'], [
+    $response = $this->postJson("/api/v1/webhook/{$webhook->uuid}", ['data' => 'test'], [
         'Authorization' => 'Bearer wrong-token',
     ]);
     $response->assertStatus(401);
@@ -269,7 +269,7 @@ test('webhook with bearer auth accepts authorized requests', function () {
         'auth_config' => json_encode(['token' => 'secret-token-123']),
     ]);
 
-    $response = $this->postJson("/api/webhook/{$webhook->uuid}", ['data' => 'test'], [
+    $response = $this->postJson("/api/v1/webhook/{$webhook->uuid}", ['data' => 'test'], [
         'Authorization' => 'Bearer secret-token-123',
     ]);
 
@@ -281,7 +281,7 @@ test('webhook for inactive workflow returns 410', function () {
     $webhook = createWebhook($workspace, $workflow);
     $workflow->update(['is_active' => false]);
 
-    $response = $this->postJson("/api/webhook/{$webhook->uuid}", ['data' => 'test']);
+    $response = $this->postJson("/api/v1/webhook/{$webhook->uuid}", ['data' => 'test']);
 
     $response->assertStatus(410);
 });
@@ -294,7 +294,7 @@ test('webhook includes custom response body when configured', function () {
         'response_body' => ['message' => 'Accepted', 'queued' => true],
     ]);
 
-    $response = $this->postJson("/api/webhook/{$webhook->uuid}", ['data' => 'test']);
+    $response = $this->postJson("/api/v1/webhook/{$webhook->uuid}", ['data' => 'test']);
 
     $response->assertStatus(202)
         ->assertJsonPath('message', 'Accepted')

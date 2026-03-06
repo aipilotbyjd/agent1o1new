@@ -7,10 +7,11 @@
 |
 | Route layers (outermost → innermost):
 |
-|   1. Public        — No auth required (health, plans, webhooks)
+|   1. Public        — No auth required (health, verify-email, webhooks)
 |   2. Guest         — Auth routes for unauthenticated users (login, register)
-|   3. Authenticated — Requires valid access token (auth:api)
-|   4. Workspace     — Requires membership + resolves role/permissions ONCE
+|   3. Engine        — HMAC-signed requests from Go execution engine
+|   4. Authenticated — Requires valid access token (auth:api)
+|   5. Workspace     — Requires membership + resolves role/permissions ONCE
 |                      via 'workspace.role' middleware. All nested models are
 |                      scoped to the workspace via scopeBindings().
 |
@@ -55,6 +56,9 @@ Route::prefix('v1')->as('v1.')->group(function () {
         ->middleware('signed')
         ->name('verification.verify');
 
+    Route::match(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], 'webhook/{uuid}', [WebhookReceiverController::class, 'handle'])
+        ->name('webhook.receive');
+
     /*
     |----------------------------------------------------------------------
     | Guest — Authentication routes (unauthenticated users only)
@@ -71,6 +75,17 @@ Route::prefix('v1')->as('v1.')->group(function () {
             Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
             Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('reset-password');
         });
+
+    /*
+    |----------------------------------------------------------------------
+    | Engine Callbacks — HMAC-signed requests from Go execution engine
+    |----------------------------------------------------------------------
+    */
+
+    Route::prefix('jobs')->as('jobs.')->middleware('engine.signature')->group(function () {
+        Route::post('callback', [JobCallbackController::class, 'handle'])->name('callback');
+        Route::post('progress', [JobCallbackController::class, 'progress'])->name('progress');
+    });
 
     /*
     |----------------------------------------------------------------------
@@ -158,24 +173,32 @@ Route::prefix('v1')->as('v1.')->group(function () {
 
                 // ── Workflows ────────────────────────────────────────
 
-                Route::get('workflows', [WorkflowController::class, 'index'])->name('workflows.index');
-                Route::post('workflows', [WorkflowController::class, 'store'])->name('workflows.store');
-                Route::get('workflows/{workflow}', [WorkflowController::class, 'show'])->name('workflows.show');
-                Route::put('workflows/{workflow}', [WorkflowController::class, 'update'])->name('workflows.update');
-                Route::delete('workflows/{workflow}', [WorkflowController::class, 'destroy'])->name('workflows.destroy');
-                Route::post('workflows/{workflow}/activate', [WorkflowController::class, 'activate'])->name('workflows.activate');
-                Route::post('workflows/{workflow}/deactivate', [WorkflowController::class, 'deactivate'])->name('workflows.deactivate');
-                Route::post('workflows/{workflow}/duplicate', [WorkflowController::class, 'duplicate'])->name('workflows.duplicate');
+                Route::prefix('workflows')->as('workflows.')->group(function () {
+                    Route::get('/', [WorkflowController::class, 'index'])->name('index');
+                    Route::post('/', [WorkflowController::class, 'store'])->name('store');
 
-                // ── Workflow Versions ────────────────────────────────
+                    Route::prefix('{workflow}')->group(function () {
+                        Route::get('/', [WorkflowController::class, 'show'])->name('show');
+                        Route::put('/', [WorkflowController::class, 'update'])->name('update');
+                        Route::delete('/', [WorkflowController::class, 'destroy'])->name('destroy');
+                        Route::post('activate', [WorkflowController::class, 'activate'])->name('activate');
+                        Route::post('deactivate', [WorkflowController::class, 'deactivate'])->name('deactivate');
+                        Route::post('duplicate', [WorkflowController::class, 'duplicate'])->name('duplicate');
+                        Route::post('execute', [ExecutionController::class, 'store'])->name('execute');
+                        Route::get('executions', [ExecutionController::class, 'workflowExecutions'])->name('executions.index');
+                        Route::post('webhook', [WebhookController::class, 'store'])->name('webhook.store');
 
-                Route::prefix('workflows/{workflow}/versions')->as('workflows.versions.')->group(function () {
-                    Route::get('/', [WorkflowVersionController::class, 'index'])->name('index');
-                    Route::post('/', [WorkflowVersionController::class, 'store'])->name('store');
-                    Route::get('diff', [WorkflowVersionController::class, 'diff'])->name('diff');
-                    Route::get('{version}', [WorkflowVersionController::class, 'show'])->name('show');
-                    Route::post('{version}/publish', [WorkflowVersionController::class, 'publish'])->name('publish');
-                    Route::post('{version}/rollback', [WorkflowVersionController::class, 'rollback'])->name('rollback');
+                        // ── Versions ─────────────────────────────────
+
+                        Route::prefix('versions')->as('versions.')->group(function () {
+                            Route::get('/', [WorkflowVersionController::class, 'index'])->name('index');
+                            Route::post('/', [WorkflowVersionController::class, 'store'])->name('store');
+                            Route::get('diff', [WorkflowVersionController::class, 'diff'])->name('diff');
+                            Route::get('{version}', [WorkflowVersionController::class, 'show'])->name('show');
+                            Route::post('{version}/publish', [WorkflowVersionController::class, 'publish'])->name('publish');
+                            Route::post('{version}/rollback', [WorkflowVersionController::class, 'rollback'])->name('rollback');
+                        });
+                    });
                 });
 
                 // ── Credentials ──────────────────────────────────────
@@ -190,9 +213,6 @@ Route::prefix('v1')->as('v1.')->group(function () {
                 });
 
                 // ── Executions ───────────────────────────────────────
-
-                Route::post('workflows/{workflow}/execute', [ExecutionController::class, 'store'])->name('workflows.execute');
-                Route::get('workflows/{workflow}/executions', [ExecutionController::class, 'workflowExecutions'])->name('workflows.executions.index');
 
                 Route::prefix('executions')->as('executions.')->group(function () {
                     Route::get('stats', [ExecutionController::class, 'stats'])->name('stats');
@@ -209,20 +229,10 @@ Route::prefix('v1')->as('v1.')->group(function () {
 
                 Route::prefix('webhooks')->as('webhooks.')->group(function () {
                     Route::get('/', [WebhookController::class, 'index'])->name('index');
-                    Route::post('workflows/{workflow}', [WebhookController::class, 'store'])->name('store');
                     Route::get('{webhook}', [WebhookController::class, 'show'])->name('show');
                     Route::put('{webhook}', [WebhookController::class, 'update'])->name('update');
                     Route::delete('{webhook}', [WebhookController::class, 'destroy'])->name('destroy');
                 });
-
-                // ── Variables ────────────────────────────────────────
-                // (Module 9 — routes will be added here)
-
-                // ── Tags ─────────────────────────────────────────────
-                // (Module 9 — routes will be added here)
-
-                // ── Activity Logs ────────────────────────────────────
-                // (Module 10 — routes will be added here)
             });
 
         /*
@@ -254,32 +264,4 @@ Route::prefix('v1')->as('v1.')->group(function () {
             Route::get('{credentialType}', [CredentialTypeController::class, 'show'])->name('show');
         });
     });
-});
-
-/*
-|--------------------------------------------------------------------------
-| External Webhook Receivers — No auth (public-facing)
-|--------------------------------------------------------------------------
-|
-| Incoming webhooks from third-party services (Stripe, GitHub, etc.)
-| hitting user-configured webhook URLs. Identified by UUID, not auth.
-|
-*/
-
-Route::match(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], 'webhook/{uuid}', [WebhookReceiverController::class, 'handle'])
-    ->name('webhook.receive');
-
-/*
-|--------------------------------------------------------------------------
-| Go Engine Callbacks — Signed requests only
-|--------------------------------------------------------------------------
-|
-| Internal endpoints called by the Go execution engine to report job
-| results back to the API. Verified via HMAC signature, not user auth.
-|
-*/
-
-Route::prefix('v1/jobs')->as('v1.jobs.')->middleware('engine.signature')->group(function () {
-    Route::post('callback', [JobCallbackController::class, 'handle'])->name('callback');
-    Route::post('progress', [JobCallbackController::class, 'progress'])->name('progress');
 });
