@@ -87,8 +87,7 @@ class Workflow extends Model
      */
     public function tags(): BelongsToMany
     {
-        return $this->belongsToMany(Tag::class, 'taggables', 'taggable_id', 'tag_id')
-            ->where('taggable_type', self::class);
+        return $this->belongsToMany(Tag::class, 'workflow_tags');
     }
 
     /**

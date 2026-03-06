@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "mcp__laravel-boost__database-schema",
-      "mcp__laravel-boost__list-routes"
+      "mcp__laravel-boost__list-routes",
+      "Bash(vendor/bin/pint --dirty --format agent 2>&1)",
+      "Bash(php artisan test --compact --filter=VariableModuleTest 2>&1)",
+      "Bash(php artisan test --compact --filter=TagModuleTest 2>&1)",
+      "Bash(php artisan test --compact --filter=ActivityLogModuleTest 2>&1)",
+      "Bash(php artisan test --compact 2>&1)",
+      "Bash(php artisan route:list --except-vendor 2>&1 | grep -c '  ')"
     ]
   },
   "enableAllProjectMcpServers": true,

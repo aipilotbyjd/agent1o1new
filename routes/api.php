@@ -22,6 +22,7 @@
 |
 */
 
+use App\Http\Controllers\Api\V1\ActivityLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CredentialController;
 use App\Http\Controllers\Api\V1\CredentialTypeController;
@@ -30,7 +31,9 @@ use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\JobCallbackController;
 use App\Http\Controllers\Api\V1\NodeCategoryController;
 use App\Http\Controllers\Api\V1\NodeController;
+use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\VariableController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Controllers\Api\V1\WebhookReceiverController;
 use App\Http\Controllers\Api\V1\WorkflowController;
@@ -232,6 +235,35 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('{webhook}', [WebhookController::class, 'show'])->name('show');
                     Route::put('{webhook}', [WebhookController::class, 'update'])->name('update');
                     Route::delete('{webhook}', [WebhookController::class, 'destroy'])->name('destroy');
+                });
+
+                // ── Variables ────────────────────────────────────────
+
+                Route::prefix('variables')->as('variables.')->group(function () {
+                    Route::get('/', [VariableController::class, 'index'])->name('index');
+                    Route::post('/', [VariableController::class, 'store'])->name('store');
+                    Route::get('{variable}', [VariableController::class, 'show'])->name('show');
+                    Route::put('{variable}', [VariableController::class, 'update'])->name('update');
+                    Route::delete('{variable}', [VariableController::class, 'destroy'])->name('destroy');
+                });
+
+                // ── Tags ─────────────────────────────────────────────
+
+                Route::prefix('tags')->as('tags.')->group(function () {
+                    Route::get('/', [TagController::class, 'index'])->name('index');
+                    Route::post('/', [TagController::class, 'store'])->name('store');
+                    Route::get('{tag}', [TagController::class, 'show'])->name('show');
+                    Route::put('{tag}', [TagController::class, 'update'])->name('update');
+                    Route::delete('{tag}', [TagController::class, 'destroy'])->name('destroy');
+                    Route::post('{tag}/workflows', [TagController::class, 'attachWorkflows'])->name('workflows.attach');
+                    Route::delete('{tag}/workflows', [TagController::class, 'detachWorkflows'])->name('workflows.detach');
+                });
+
+                // ── Activity Logs ────────────────────────────────────
+
+                Route::prefix('activity-logs')->as('activity-logs.')->group(function () {
+                    Route::get('/', [ActivityLogController::class, 'index'])->name('index');
+                    Route::get('{activityLog}', [ActivityLogController::class, 'show'])->name('show');
                 });
             });
 
