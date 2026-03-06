@@ -87,4 +87,12 @@ class Workspace extends Model
     {
         return $this->hasMany(Execution::class);
     }
+
+    /**
+     * @return HasMany<Webhook, $this>
+     */
+    public function webhooks(): HasMany
+    {
+        return $this->hasMany(Webhook::class);
+    }
 }

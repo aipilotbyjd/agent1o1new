@@ -30,6 +30,8 @@ use App\Http\Controllers\Api\V1\JobCallbackController;
 use App\Http\Controllers\Api\V1\NodeCategoryController;
 use App\Http\Controllers\Api\V1\NodeController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\WebhookController;
+use App\Http\Controllers\Api\V1\WebhookReceiverController;
 use App\Http\Controllers\Api\V1\WorkflowController;
 use App\Http\Controllers\Api\V1\WorkflowVersionController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
@@ -204,7 +206,14 @@ Route::prefix('v1')->as('v1.')->group(function () {
                 });
 
                 // ── Webhooks ─────────────────────────────────────────
-                // (Module 8 — routes will be added here)
+
+                Route::prefix('webhooks')->as('webhooks.')->group(function () {
+                    Route::get('/', [WebhookController::class, 'index'])->name('index');
+                    Route::post('workflows/{workflow}', [WebhookController::class, 'store'])->name('store');
+                    Route::get('{webhook}', [WebhookController::class, 'show'])->name('show');
+                    Route::put('{webhook}', [WebhookController::class, 'update'])->name('update');
+                    Route::delete('{webhook}', [WebhookController::class, 'destroy'])->name('destroy');
+                });
 
                 // ── Variables ────────────────────────────────────────
                 // (Module 9 — routes will be added here)
@@ -255,8 +264,10 @@ Route::prefix('v1')->as('v1.')->group(function () {
 | Incoming webhooks from third-party services (Stripe, GitHub, etc.)
 | hitting user-configured webhook URLs. Identified by UUID, not auth.
 |
-| (Module 8 — WebhookReceiverController will be added here)
 */
+
+Route::match(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], 'webhook/{uuid}', [WebhookReceiverController::class, 'handle'])
+    ->name('webhook.receive');
 
 /*
 |--------------------------------------------------------------------------
