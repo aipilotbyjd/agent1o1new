@@ -28,6 +28,11 @@ class Webhook extends Model
         'last_called_at',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
     protected function casts(): array
     {
         return [
