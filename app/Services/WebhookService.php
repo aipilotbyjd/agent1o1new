@@ -139,6 +139,12 @@ class WebhookService
                 'response_body' => $webhook->response_body ?? ['success' => true, 'execution_id' => $execution->id],
             ];
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Webhook trigger failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'webhook_uuid' => $webhook->uuid,
+                'workflow_id' => $workflow->id,
+            ]);
+
             return [
                 'execution_id' => null,
                 'status' => 'error',
