@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CreditPackStatus;
 use App\Enums\CreditTransactionType;
 use App\Enums\ExecutionStatus;
 use App\Models\CreditPack;
@@ -9,25 +10,28 @@ use App\Models\CreditTransaction;
 use App\Models\Execution;
 use App\Models\ExecutionNode;
 use App\Models\Workspace;
-use App\Models\WorkspaceUsagePeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
 class CreditMeterService
 {
     /**
-     * Node type to credit cost mapping.
+     * Node type prefix → credit cost mapping.
+     *
+     * | Node Type      | Cost       |
+     * |----------------|------------|
+     * | Trigger node   | 0 credits  |
+     * | Regular node   | 1 credit   |
+     * | Code node      | 2 credits  |
+     * | AI node        | 10 credits |
      */
-    private const CREDIT_COSTS = [
-        'trigger_webhook' => 0,        // Trigger node
-        'action_http_request' => 1,    // Regular node
-        'action_transform' => 2,       // Code node
-        'logic_if' => 1,               // Regular node
-        // Default for unknown types
-        'default_regular' => 1,
-        'default_code' => 2,
-        'default_ai' => 10,
-    ];
+    private const NODE_COST_TRIGGER = 0;
+
+    private const NODE_COST_REGULAR = 1;
+
+    private const NODE_COST_CODE = 2;
+
+    private const NODE_COST_AI = 10;
 
     /**
      * Get available credits for a workspace.
@@ -38,13 +42,20 @@ class CreditMeterService
         try {
             $cached = Redis::get("credits:available:{$workspace->id}");
             if ($cached !== null) {
-                return (int) $cached;
+                return max(0, (int) $cached);
             }
         } catch (\Exception) {
             // Redis not available, fall through to database
         }
 
-        // Database fallback
+        return $this->getAvailableFromDatabase($workspace);
+    }
+
+    /**
+     * Calculate available credits from database (source of truth).
+     */
+    public function getAvailableFromDatabase(Workspace $workspace): int
+    {
         $period = $workspace->usagePeriods()
             ->where('is_current', true)
             ->first();
@@ -53,20 +64,30 @@ class CreditMeterService
             return 0;
         }
 
-        // Calculate remaining in current period
-        $remaining = $period->creditsRemaining();
+        // Check for unlimited (Enterprise)
+        if ($period->credits_limit === -1) {
+            return PHP_INT_MAX;
+        }
 
-        // Add credits from usable packs
+        $periodRemaining = $period->creditsRemaining();
+
+        // Add credits from usable packs (active, not expired, with remaining credits)
         $packCredits = $workspace->creditPacks()
-            ->where('status', 'active')
+            ->where('status', CreditPackStatus::Active)
             ->where('credits_remaining', '>', 0)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
             ->sum('credits_remaining');
 
-        return $remaining + $packCredits;
+        return $periodRemaining + (int) $packCredits;
     }
 
     /**
      * Calculate total cost for given execution nodes.
+     *
+     * @param  array<int, ExecutionNode>  $nodes
      */
     public function calculateCost(array $nodes): int
     {
@@ -74,7 +95,7 @@ class CreditMeterService
 
         foreach ($nodes as $node) {
             if ($node instanceof ExecutionNode) {
-                $cost += $this->getCreditCostForNodeType($node->node_type);
+                $cost += $this->getNodeCost($node->node_type);
             }
         }
 
@@ -82,18 +103,20 @@ class CreditMeterService
     }
 
     /**
-     * Consume credits for an execution with idempotency check.
+     * Consume credits for a completed execution.
+     * Idempotent — will not double-charge if called again.
+     *
      * Returns the amount actually consumed.
      */
     public function consume(Execution $execution, array $nodes): int
     {
-        // Failed executions cost nothing
-        if ($execution->status === ExecutionStatus::Failed) {
+        // Failed/cancelled executions cost nothing
+        if (in_array($execution->status, [ExecutionStatus::Failed, ExecutionStatus::Cancelled])) {
             return 0;
         }
 
-        // Idempotency check: already charged?
-        if ($execution->credits_consumed !== null) {
+        // Idempotency: already charged
+        if ($execution->credits_consumed !== null && $execution->credits_consumed > 0) {
             return $execution->credits_consumed;
         }
 
@@ -101,10 +124,10 @@ class CreditMeterService
 
         if ($cost === 0) {
             $execution->update(['credits_consumed' => 0]);
+
             return 0;
         }
 
-        // Get current period
         $period = $execution->workspace->usagePeriods()
             ->where('is_current', true)
             ->first();
@@ -117,26 +140,29 @@ class CreditMeterService
         try {
             Redis::decrby("credits:available:{$execution->workspace_id}", $cost);
         } catch (\Exception) {
-            // Redis not available, proceed to DB
+            // Redis not available
         }
 
-        // Async DB write: create transaction, update period, update execution
-        DB::transaction(function () use ($execution, $cost, $period) {
-            // Create credit transaction
+        // Count node types for period statistics
+        $nodeStats = $this->countNodeTypes($nodes);
+
+        DB::transaction(function () use ($execution, $cost, $period, $nodeStats) {
             CreditTransaction::create([
                 'workspace_id' => $execution->workspace_id,
                 'usage_period_id' => $period->id,
                 'type' => CreditTransactionType::Execution,
                 'credits' => $cost,
-                'description' => "Execution {$execution->id}",
+                'description' => "Execution #{$execution->id}",
                 'execution_id' => $execution->id,
                 'created_at' => now(),
             ]);
 
-            // Update usage period
             $period->increment('credits_used', $cost);
+            $period->increment('executions_total');
+            $period->increment('executions_succeeded');
+            $period->increment('nodes_executed', $nodeStats['total']);
+            $period->increment('ai_nodes_executed', $nodeStats['ai']);
 
-            // Update execution
             $execution->update(['credits_consumed' => $cost]);
         });
 
@@ -154,7 +180,6 @@ class CreditMeterService
             return;
         }
 
-        // Get current period
         $period = $execution->workspace->usagePeriods()
             ->where('is_current', true)
             ->first();
@@ -163,42 +188,36 @@ class CreditMeterService
             return;
         }
 
-        // Atomically refund from Redis
         try {
             Redis::incrby("credits:available:{$execution->workspace_id}", $credits);
         } catch (\Exception) {
-            // Redis not available, proceed to DB
+            // Redis not available
         }
 
-        // DB transaction
         DB::transaction(function () use ($execution, $credits, $period) {
-            // Create refund transaction
             CreditTransaction::create([
                 'workspace_id' => $execution->workspace_id,
                 'usage_period_id' => $period->id,
                 'type' => CreditTransactionType::Refund,
                 'credits' => -$credits,
-                'description' => "Refund for execution {$execution->id}",
+                'description' => "Refund for execution #{$execution->id}",
                 'execution_id' => $execution->id,
                 'created_at' => now(),
             ]);
 
-            // Update usage period
-            $period->decrement('credits_used', $credits);
+            $period->decrement('credits_used', min($credits, $period->credits_used));
 
-            // Update execution
             $execution->update(['credits_consumed' => 0]);
         });
     }
 
     /**
-     * Add credits from a purchased pack.
+     * Add credits from a purchased credit pack.
      */
     public function addPackCredits(CreditPack $pack): void
     {
         $workspace = $pack->workspace;
 
-        // Get current period
         $period = $workspace->usagePeriods()
             ->where('is_current', true)
             ->first();
@@ -207,34 +226,34 @@ class CreditMeterService
             return;
         }
 
-        // Update period with pack credits
         $period->increment('credits_from_packs', $pack->credits_amount);
 
-        // Update Redis
         try {
             Redis::incrby("credits:available:{$workspace->id}", $pack->credits_amount);
         } catch (\Exception) {
             // Redis not available
         }
 
-        // Create transaction record
         CreditTransaction::create([
             'workspace_id' => $workspace->id,
             'usage_period_id' => $period->id,
             'type' => CreditTransactionType::PackPurchase,
             'credits' => $pack->credits_amount,
-            'description' => "Pack purchase {$pack->id}",
+            'description' => "Credit pack #{$pack->id}",
             'created_at' => now(),
         ]);
     }
 
     /**
-     * Roll over to next period with logic for carrying over unused credits.
-     * Closes current period, carries up to 50% if yearly+annual_rollover flag, creates new period.
+     * Roll over to next billing period.
+     *
+     * - Closes current period
+     * - If yearly + plan has annual_rollover feature: carry 50% of unused credits
+     * - Creates new period
+     * - Resets Redis balance
      */
     public function rolloverPeriod(Workspace $workspace): void
     {
-        // Get current period
         $currentPeriod = $workspace->usagePeriods()
             ->where('is_current', true)
             ->first();
@@ -244,30 +263,34 @@ class CreditMeterService
         }
 
         DB::transaction(function () use ($workspace, $currentPeriod) {
-            // Mark current period as not current
             $currentPeriod->update(['is_current' => false]);
 
-            // Calculate rollover amount
             $subscription = $currentPeriod->subscription;
+
+            if (! $subscription) {
+                return;
+            }
+
             $remaining = $currentPeriod->creditsRemaining();
             $rolledOver = 0;
 
-            // Check for annual rollover eligibility
-            if ($subscription && $subscription->billing_interval->value === 'yearly') {
-                // Check if annual_rollover flag is enabled (assuming it's in workspace settings)
-                $rolloverEnabled = $workspace->settings['annual_rollover'] ?? false;
-                if ($rolloverEnabled && $remaining > 0) {
-                    // Carry over up to 50% of remaining
-                    $rolledOver = (int) floor($remaining * 0.5);
-                }
+            // Annual rollover: yearly billing + plan feature flag
+            $plan = $subscription->plan;
+            $isYearly = $subscription->billing_interval->value === 'yearly';
+            $hasRolloverFeature = $plan?->hasFeature('annual_rollover') ?? false;
+
+            // Also check workspace settings as fallback
+            $workspaceRollover = $workspace->settings['annual_rollover'] ?? false;
+
+            if ($isYearly && ($hasRolloverFeature || $workspaceRollover) && $remaining > 0) {
+                $rolledOver = (int) floor($remaining * 0.5);
             }
 
-            // Create new period
+            // Calculate new period dates
             $periodStart = $currentPeriod->period_end->addDay();
             $periodEnd = match ($subscription->billing_interval->value) {
-                'monthly' => $periodStart->addMonths(1)->subDay(),
-                'yearly' => $periodStart->addYears(1)->subDay(),
-                default => $periodStart->addMonths(1)->subDay(),
+                'yearly' => $periodStart->copy()->addYear()->subDay(),
+                default => $periodStart->copy()->addMonth()->subDay(),
             };
 
             $newPeriod = $workspace->usagePeriods()->create([
@@ -279,21 +302,20 @@ class CreditMeterService
                 'is_current' => true,
             ]);
 
-            // If rollover occurred, record it
             if ($rolledOver > 0) {
                 CreditTransaction::create([
                     'workspace_id' => $workspace->id,
                     'usage_period_id' => $newPeriod->id,
                     'type' => CreditTransactionType::Rollover,
                     'credits' => $rolledOver,
-                    'description' => "Rollover from period {$currentPeriod->id}",
+                    'description' => "Rollover from period #{$currentPeriod->id}",
                     'created_at' => now(),
                 ]);
             }
 
-            // Reset Redis key
+            // Reset Redis
             try {
-                $totalAvailable = $newPeriod->credits_limit + $newPeriod->credits_rolled_over;
+                $totalAvailable = $newPeriod->credits_limit + $rolledOver;
                 Redis::set("credits:available:{$workspace->id}", $totalAvailable);
             } catch (\Exception) {
                 // Redis not available
@@ -302,10 +324,102 @@ class CreditMeterService
     }
 
     /**
-     * Get credit cost for a specific node type.
+     * Drain credits from credit packs (oldest expiry first — FIFO).
+     * Used after monthly plan credits are exhausted.
      */
-    private function getCreditCostForNodeType(string $nodeType): int
+    public function drainPacks(Workspace $workspace, int $amount): int
     {
-        return self::CREDIT_COSTS[$nodeType] ?? self::CREDIT_COSTS['default_regular'];
+        $drained = 0;
+
+        $packs = $workspace->creditPacks()
+            ->where('status', CreditPackStatus::Active)
+            ->where('credits_remaining', '>', 0)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->orderBy('expires_at')
+            ->get();
+
+        foreach ($packs as $pack) {
+            if ($drained >= $amount) {
+                break;
+            }
+
+            $toConsume = min($amount - $drained, $pack->credits_remaining);
+            $pack->credits_remaining -= $toConsume;
+
+            if ($pack->credits_remaining <= 0) {
+                $pack->status = CreditPackStatus::Exhausted;
+            }
+
+            $pack->save();
+            $drained += $toConsume;
+        }
+
+        return $drained;
+    }
+
+    /**
+     * Sync Redis credit balance from database (reconciliation).
+     */
+    public function syncRedisBalance(Workspace $workspace): void
+    {
+        $available = $this->getAvailableFromDatabase($workspace);
+
+        try {
+            Redis::set("credits:available:{$workspace->id}", $available);
+        } catch (\Exception) {
+            // Redis not available
+        }
+    }
+
+    /**
+     * Get credit cost for a node type.
+     *
+     * Classification by prefix:
+     * - trigger_*  → 0 credits (free)
+     * - ai_*       → 10 credits
+     * - code_*, action_transform → 2 credits
+     * - everything else → 1 credit
+     */
+    private function getNodeCost(string $nodeType): int
+    {
+        if (str_starts_with($nodeType, 'trigger_')) {
+            return self::NODE_COST_TRIGGER;
+        }
+
+        if (str_starts_with($nodeType, 'ai_')) {
+            return self::NODE_COST_AI;
+        }
+
+        if ($nodeType === 'action_transform' || str_starts_with($nodeType, 'code_')) {
+            return self::NODE_COST_CODE;
+        }
+
+        return self::NODE_COST_REGULAR;
+    }
+
+    /**
+     * Count node types for period statistics.
+     *
+     * @param  array<int, ExecutionNode>  $nodes
+     * @return array{total: int, ai: int}
+     */
+    private function countNodeTypes(array $nodes): array
+    {
+        $total = 0;
+        $ai = 0;
+
+        foreach ($nodes as $node) {
+            if ($node instanceof ExecutionNode) {
+                $total++;
+                if (str_starts_with($node->node_type, 'ai_')) {
+                    $ai++;
+                }
+            }
+        }
+
+        return ['total' => $total, 'ai' => $ai];
     }
 }

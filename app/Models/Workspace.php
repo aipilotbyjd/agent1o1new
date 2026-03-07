@@ -143,4 +143,12 @@ class Workspace extends Model
     {
         return $this->hasMany(CreditPack::class);
     }
+
+    /**
+     * @return HasMany<CreditTransaction, $this>
+     */
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class);
+    }
 }

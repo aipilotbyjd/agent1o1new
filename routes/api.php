@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\ActivityLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CredentialController;
 use App\Http\Controllers\Api\V1\CredentialTypeController;
+use App\Http\Controllers\Api\V1\CreditController;
 use App\Http\Controllers\Api\V1\ExecutionController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\JobCallbackController;
@@ -264,6 +265,12 @@ Route::prefix('v1')->as('v1.')->group(function () {
                 Route::prefix('activity-logs')->as('activity-logs.')->group(function () {
                     Route::get('/', [ActivityLogController::class, 'index'])->name('index');
                     Route::get('{activityLog}', [ActivityLogController::class, 'show'])->name('show');
+                });
+
+                // ── Credits ─────────────────────────────────────────
+                Route::prefix('credits')->as('credits.')->group(function () {
+                    Route::get('balance', [CreditController::class, 'balance'])->name('balance');
+                    Route::get('transactions', [CreditController::class, 'transactions'])->name('transactions');
                 });
             });
 

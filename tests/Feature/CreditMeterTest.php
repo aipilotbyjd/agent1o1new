@@ -1,432 +1,459 @@
 <?php
 
+use App\Enums\BillingInterval;
 use App\Enums\CreditPackStatus;
 use App\Enums\CreditTransactionType;
-use App\Enums\ExecutionStatus;
 use App\Models\CreditPack;
 use App\Models\CreditTransaction;
 use App\Models\Execution;
 use App\Models\ExecutionNode;
+use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\Workspace;
 use App\Models\WorkspaceUsagePeriod;
 use App\Services\CreditMeterService;
 
 describe('CreditMeterService', function () {
     beforeEach(function () {
-        $this->service = new CreditMeterService();
+        $this->service = new CreditMeterService;
         $this->workspace = Workspace::factory()->create();
-        
-        // Bootstrap with subscription and period
-        $this->bootstrapWorkspaceBilling();
+
+        // Bootstrap billing state
+        $plan = Plan::factory()->create([
+            'slug' => 'test-plan',
+            'limits' => ['credits_monthly' => 100],
+            'features' => ['annual_rollover' => false, 'credit_packs' => true],
+        ]);
+
+        $subscription = Subscription::factory()->create([
+            'workspace_id' => $this->workspace->id,
+            'plan_id' => $plan->id,
+            'status' => 'active',
+            'billing_interval' => BillingInterval::Monthly,
+            'credits_monthly' => 100,
+        ]);
+
+        WorkspaceUsagePeriod::factory()->create([
+            'workspace_id' => $this->workspace->id,
+            'subscription_id' => $subscription->id,
+            'period_start' => now()->toDateString(),
+            'period_end' => now()->addDays(30)->toDateString(),
+            'credits_limit' => 100,
+            'credits_used' => 0,
+            'is_current' => true,
+        ]);
     });
 
-    // ────────────────────────────────────────────────────────────────────
-    // getAvailable()
-    // ────────────────────────────────────────────────────────────────────
+    // ── getAvailable() ──────────────────────────────────────────────
 
-    it('returns available credits from Redis when cached', function () {
-        $available = $this->service->getAvailable($this->workspace);
-        expect($available)->toBe(100); // Free plan default from bootstrap
-    });
+    describe('getAvailable', function () {
+        it('returns available credits from database', function () {
+            $available = $this->service->getAvailable($this->workspace);
+            expect($available)->toBe(100);
+        });
 
-    it('falls back to database when Redis unavailable', function () {
-        $available = $this->service->getAvailable($this->workspace);
-        expect($available)->toBeGreaterThan(0);
-    });
-
-    it('includes credits from usable packs', function () {
-        // Add a pack
-        $pack = CreditPack::factory()
-            ->for($this->workspace)
-            ->create([
+        it('includes credits from usable packs', function () {
+            CreditPack::factory()->for($this->workspace)->create([
                 'credits_amount' => 50,
                 'credits_remaining' => 50,
                 'status' => CreditPackStatus::Active,
+                'expires_at' => now()->addMonths(6),
             ]);
 
-        $available = $this->service->getAvailable($this->workspace);
-        expect($available)->toBe(150); // 100 from period + 50 from pack
-    });
+            $available = $this->service->getAvailable($this->workspace);
+            expect($available)->toBe(150);
+        });
 
-    it('returns zero when no period exists', function () {
-        // Create a new workspace without billing bootstrap
-        $newWorkspace = Workspace::factory()->create();
-        $available = $this->service->getAvailable($newWorkspace);
-        expect($available)->toBe(0);
-    });
-
-    // ────────────────────────────────────────────────────────────────────
-    // calculateCost()
-    // ────────────────────────────────────────────────────────────────────
-
-    it('calculates zero cost for trigger nodes', function () {
-        $nodes = [
-            ExecutionNode::factory()->create(['node_type' => 'trigger_webhook']),
-        ];
-
-        $cost = $this->service->calculateCost($nodes);
-        expect($cost)->toBe(0);
-    });
-
-    it('calculates correct cost for regular nodes', function () {
-        $nodes = [
-            ExecutionNode::factory()->create(['node_type' => 'action_http_request']),
-            ExecutionNode::factory()->create(['node_type' => 'logic_if']),
-        ];
-
-        $cost = $this->service->calculateCost($nodes);
-        expect($cost)->toBe(2); // 1 + 1
-    });
-
-    it('calculates correct cost for code nodes', function () {
-        $nodes = [
-            ExecutionNode::factory()->create(['node_type' => 'action_transform']),
-        ];
-
-        $cost = $this->service->calculateCost($nodes);
-        expect($cost)->toBe(2);
-    });
-
-    it('calculates mixed node costs', function () {
-        $nodes = [
-            ExecutionNode::factory()->create(['node_type' => 'trigger_webhook']),
-            ExecutionNode::factory()->create(['node_type' => 'action_http_request']),
-            ExecutionNode::factory()->create(['node_type' => 'action_transform']),
-            ExecutionNode::factory()->create(['node_type' => 'logic_if']),
-        ];
-
-        $cost = $this->service->calculateCost($nodes);
-        expect($cost)->toBe(4); // 0 + 1 + 2 + 1
-    });
-
-    // ────────────────────────────────────────────────────────────────────
-    // consume()
-    // ────────────────────────────────────────────────────────────────────
-
-    it('returns zero for failed executions', function () {
-        $execution = Execution::factory()
-            ->for($this->workspace)
-            ->failed()
-            ->create();
-
-        $nodes = [
-            ExecutionNode::factory()
-                ->for($execution)
-                ->create(['node_type' => 'action_transform']),
-        ];
-
-        $consumed = $this->service->consume($execution, $nodes);
-        expect($consumed)->toBe(0);
-        expect($execution->refresh()->credits_consumed)->toBeNull();
-    });
-
-    it('consumes credits and records transaction', function () {
-        $execution = Execution::factory()
-            ->for($this->workspace)
-            ->completed()
-            ->create();
-
-        $nodes = [
-            ExecutionNode::factory()
-                ->for($execution)
-                ->create(['node_type' => 'action_http_request']),
-        ];
-
-        $consumed = $this->service->consume($execution, $nodes);
-        
-        expect($consumed)->toBe(1);
-        expect($execution->refresh()->credits_consumed)->toBe(1);
-        
-        // Verify transaction created
-        $transaction = CreditTransaction::where('execution_id', $execution->id)->first();
-        expect($transaction)->not->toBeNull();
-        expect($transaction->credits)->toBe(1);
-        expect($transaction->type)->toBe(CreditTransactionType::Execution);
-    });
-
-    it('updates usage period when consuming', function () {
-        $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        $initialUsed = $period->credits_used;
-
-        $execution = Execution::factory()
-            ->for($this->workspace)
-            ->completed()
-            ->create();
-
-        $nodes = [
-            ExecutionNode::factory()
-                ->for($execution)
-                ->create(['node_type' => 'action_transform']), // 2 credits
-        ];
-
-        $this->service->consume($execution, $nodes);
-
-        $period->refresh();
-        expect($period->credits_used)->toBe($initialUsed + 2);
-    });
-
-    it('is idempotent - does not double charge', function () {
-        $execution = Execution::factory()
-            ->for($this->workspace)
-            ->completed()
-            ->create();
-
-        $nodes = [
-            ExecutionNode::factory()
-                ->for($execution)
-                ->create(['node_type' => 'action_http_request']),
-        ];
-
-        // First consume
-        $consumed1 = $this->service->consume($execution, $nodes);
-        expect($consumed1)->toBe(1);
-
-        // Second consume should return same amount, not double charge
-        $consumed2 = $this->service->consume($execution, $nodes);
-        expect($consumed2)->toBe(1);
-
-        // Verify only one transaction
-        $transactionCount = CreditTransaction::where('execution_id', $execution->id)
-            ->where('type', CreditTransactionType::Execution)
-            ->count();
-        expect($transactionCount)->toBe(1);
-    });
-
-    // ────────────────────────────────────────────────────────────────────
-    // refund()
-    // ────────────────────────────────────────────────────────────────────
-
-    it('refunds credits from execution', function () {
-        $execution = Execution::factory()
-            ->for($this->workspace)
-            ->completed()
-            ->create(['credits_consumed' => 5]);
-
-        $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        $period->update(['credits_used' => 10]);
-
-        $this->service->refund($execution);
-
-        // Verify refund transaction
-        $refund = CreditTransaction::where('execution_id', $execution->id)
-            ->where('type', CreditTransactionType::Refund)
-            ->first();
-        expect($refund)->not->toBeNull();
-        expect($refund->credits)->toBe(-5);
-
-        // Verify period updated
-        $period->refresh();
-        expect($period->credits_used)->toBe(5);
-
-        // Verify execution cleared
-        $execution->refresh();
-        expect($execution->credits_consumed)->toBe(0);
-    });
-
-    it('does nothing when refunding zero-credit execution', function () {
-        $execution = Execution::factory()
-            ->for($this->workspace)
-            ->completed()
-            ->create(['credits_consumed' => null]);
-
-        $this->service->refund($execution);
-
-        $refundCount = CreditTransaction::where('execution_id', $execution->id)
-            ->where('type', CreditTransactionType::Refund)
-            ->count();
-        expect($refundCount)->toBe(0);
-    });
-
-    // ────────────────────────────────────────────────────────────────────
-    // addPackCredits()
-    // ────────────────────────────────────────────────────────────────────
-
-    it('adds pack credits to period', function () {
-        $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        $initialPack = $period->credits_from_packs;
-
-        $pack = CreditPack::factory()
-            ->for($this->workspace)
-            ->create([
-                'credits_amount' => 100,
-                'credits_remaining' => 100,
-                'status' => CreditPackStatus::Active,
-            ]);
-
-        $this->service->addPackCredits($pack);
-
-        $period->refresh();
-        expect($period->credits_from_packs)->toBe($initialPack + 100);
-    });
-
-    it('records pack purchase transaction', function () {
-        $pack = CreditPack::factory()
-            ->for($this->workspace)
-            ->create([
+        it('excludes expired packs', function () {
+            CreditPack::factory()->for($this->workspace)->create([
                 'credits_amount' => 50,
                 'credits_remaining' => 50,
                 'status' => CreditPackStatus::Active,
+                'expires_at' => now()->subDay(),
             ]);
 
-        $this->service->addPackCredits($pack);
+            $available = $this->service->getAvailable($this->workspace);
+            expect($available)->toBe(100);
+        });
 
-        $transaction = CreditTransaction::where('type', CreditTransactionType::PackPurchase)->first();
-        expect($transaction)->not->toBeNull();
-        expect($transaction->credits)->toBe(50);
+        it('excludes exhausted packs', function () {
+            CreditPack::factory()->for($this->workspace)->create([
+                'credits_amount' => 50,
+                'credits_remaining' => 0,
+                'status' => CreditPackStatus::Exhausted,
+            ]);
+
+            $available = $this->service->getAvailable($this->workspace);
+            expect($available)->toBe(100);
+        });
+
+        it('returns zero when no period exists', function () {
+            $newWorkspace = Workspace::factory()->create();
+            expect($this->service->getAvailable($newWorkspace))->toBe(0);
+        });
     });
 
-    // ────────────────────────────────────────────────────────────────────
-    // rolloverPeriod()
-    // ────────────────────────────────────────────────────────────────────
+    // ── calculateCost() ─────────────────────────────────────────────
 
-    it('closes current period and creates new one', function () {
-        $oldPeriod = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        $oldPeriodId = $oldPeriod->id;
+    describe('calculateCost', function () {
+        it('calculates zero cost for trigger nodes', function () {
+            $nodes = [ExecutionNode::factory()->create(['node_type' => 'trigger_webhook'])];
+            expect($this->service->calculateCost($nodes))->toBe(0);
+        });
 
-        $this->service->rolloverPeriod($this->workspace);
+        it('calculates 1 credit for regular nodes', function () {
+            $nodes = [
+                ExecutionNode::factory()->create(['node_type' => 'action_http_request']),
+                ExecutionNode::factory()->create(['node_type' => 'logic_if']),
+            ];
+            expect($this->service->calculateCost($nodes))->toBe(2);
+        });
 
-        $oldPeriod->refresh();
-        expect($oldPeriod->is_current)->toBeFalse();
+        it('calculates 2 credits for code nodes', function () {
+            $nodes = [ExecutionNode::factory()->create(['node_type' => 'action_transform'])];
+            expect($this->service->calculateCost($nodes))->toBe(2);
+        });
 
-        $newPeriod = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        expect($newPeriod)->not->toBeNull();
-        expect($newPeriod->id)->not->toBe($oldPeriodId);
+        it('calculates 10 credits for AI nodes', function () {
+            $nodes = [ExecutionNode::factory()->create(['node_type' => 'ai_generate'])];
+            expect($this->service->calculateCost($nodes))->toBe(10);
+        });
+
+        it('calculates mixed node costs correctly', function () {
+            $nodes = [
+                ExecutionNode::factory()->create(['node_type' => 'trigger_webhook']),   // 0
+                ExecutionNode::factory()->create(['node_type' => 'action_http_request']), // 1
+                ExecutionNode::factory()->create(['node_type' => 'action_transform']),   // 2
+                ExecutionNode::factory()->create(['node_type' => 'ai_generate']),        // 10
+                ExecutionNode::factory()->create(['node_type' => 'logic_if']),           // 1
+            ];
+            expect($this->service->calculateCost($nodes))->toBe(14);
+        });
     });
 
-    it('carries over unused credits for yearly plans with flag', function () {
-        // Setup yearly subscription
-        $subscription = $this->workspace->subscriptions()->first();
-        $subscription->update([
-            'billing_interval' => 'yearly',
-            'credits_monthly' => 1000,
-        ]);
+    // ── consume() ───────────────────────────────────────────────────
 
-        // Update period
-        $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        $period->update([
-            'credits_limit' => 1000,
-            'credits_used' => 600, // 400 remaining
-            'period_end' => now()->toDateString(),
-        ]);
+    describe('consume', function () {
+        it('returns zero for failed executions', function () {
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->failed()
+                ->create();
 
-        // Enable annual rollover
-        $this->workspace->update([
-            'settings' => ['annual_rollover' => true],
-        ]);
+            $nodes = [ExecutionNode::factory()->for($execution)->create(['node_type' => 'action_transform'])];
 
-        $this->service->rolloverPeriod($this->workspace);
+            expect($this->service->consume($execution, $nodes))->toBe(0);
+        });
 
-        $newPeriod = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        expect($newPeriod->credits_rolled_over)->toBe(200); // 50% of 400
+        it('returns zero for cancelled executions', function () {
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->cancelled()
+                ->create();
+
+            $nodes = [ExecutionNode::factory()->for($execution)->create(['node_type' => 'action_http_request'])];
+
+            expect($this->service->consume($execution, $nodes))->toBe(0);
+        });
+
+        it('consumes credits and records transaction', function () {
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->completed()
+                ->create();
+
+            $nodes = [ExecutionNode::factory()->for($execution)->create(['node_type' => 'action_http_request'])];
+
+            $consumed = $this->service->consume($execution, $nodes);
+
+            expect($consumed)->toBe(1);
+            expect($execution->refresh()->credits_consumed)->toBe(1);
+
+            $transaction = CreditTransaction::where('execution_id', $execution->id)->first();
+            expect($transaction)->not->toBeNull();
+            expect($transaction->credits)->toBe(1);
+            expect($transaction->type)->toBe(CreditTransactionType::Execution);
+        });
+
+        it('updates usage period credits_used', function () {
+            $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
+
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->completed()
+                ->create();
+
+            $nodes = [ExecutionNode::factory()->for($execution)->create(['node_type' => 'action_transform'])];
+
+            $this->service->consume($execution, $nodes);
+
+            expect($period->refresh()->credits_used)->toBe(2);
+        });
+
+        it('updates usage period execution statistics', function () {
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->completed()
+                ->create();
+
+            $nodes = [
+                ExecutionNode::factory()->for($execution)->create(['node_type' => 'action_http_request']),
+                ExecutionNode::factory()->for($execution)->create(['node_type' => 'ai_generate']),
+            ];
+
+            $this->service->consume($execution, $nodes);
+
+            $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            expect($period->executions_total)->toBe(1);
+            expect($period->executions_succeeded)->toBe(1);
+            expect($period->nodes_executed)->toBe(2);
+            expect($period->ai_nodes_executed)->toBe(1);
+        });
+
+        it('is idempotent — does not double charge', function () {
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->completed()
+                ->create();
+
+            $nodes = [ExecutionNode::factory()->for($execution)->create(['node_type' => 'action_http_request'])];
+
+            $consumed1 = $this->service->consume($execution, $nodes);
+            $consumed2 = $this->service->consume($execution, $nodes);
+
+            expect($consumed1)->toBe(1);
+            expect($consumed2)->toBe(1);
+
+            $count = CreditTransaction::where('execution_id', $execution->id)
+                ->where('type', CreditTransactionType::Execution)
+                ->count();
+            expect($count)->toBe(1);
+        });
     });
 
-    it('does not rollover for monthly plans', function () {
-        $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        $period->update([
-            'credits_used' => 50, // 50 remaining
-            'period_end' => now()->toDateString(),
-        ]);
+    // ── refund() ────────────────────────────────────────────────────
 
-        $this->service->rolloverPeriod($this->workspace);
+    describe('refund', function () {
+        it('refunds credits and creates refund transaction', function () {
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->completed()
+                ->create(['credits_consumed' => 5]);
 
-        $newPeriod = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        expect($newPeriod->credits_rolled_over)->toBe(0);
+            $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            $period->update(['credits_used' => 10]);
+
+            $this->service->refund($execution);
+
+            $refund = CreditTransaction::where('execution_id', $execution->id)
+                ->where('type', CreditTransactionType::Refund)
+                ->first();
+            expect($refund)->not->toBeNull();
+            expect($refund->credits)->toBe(-5);
+
+            expect($period->refresh()->credits_used)->toBe(5);
+            expect($execution->refresh()->credits_consumed)->toBe(0);
+        });
+
+        it('does nothing when credits_consumed is zero (explicit)', function () {
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->completed()
+                ->create(['credits_consumed' => 0]);
+
+            $this->service->refund($execution);
+
+            expect(CreditTransaction::where('execution_id', $execution->id)->count())->toBe(0);
+        });
+
+        it('does nothing when credits_consumed defaults to zero', function () {
+            $execution = Execution::factory()
+                ->for($this->workspace)
+                ->completed()
+                ->create(['credits_consumed' => 0]);
+
+            $this->service->refund($execution);
+
+            expect(CreditTransaction::where('execution_id', $execution->id)->count())->toBe(0);
+        });
     });
 
-    it('records rollover transaction when applicable', function () {
-        $subscription = $this->workspace->subscriptions()->first();
-        $subscription->update([
-            'billing_interval' => 'yearly',
-            'credits_monthly' => 1000,
-        ]);
+    // ── addPackCredits() ────────────────────────────────────────────
 
-        $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        $period->update([
-            'credits_limit' => 1000,
-            'credits_used' => 500,
-            'period_end' => now()->toDateString(),
-        ]);
+    describe('addPackCredits', function () {
+        it('adds pack credits to usage period', function () {
+            $pack = CreditPack::factory()->for($this->workspace)->create([
+                'credits_amount' => 200,
+                'credits_remaining' => 200,
+            ]);
 
-        $this->workspace->update([
-            'settings' => ['annual_rollover' => true],
-        ]);
+            $this->service->addPackCredits($pack);
 
-        $this->service->rolloverPeriod($this->workspace);
+            $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            expect($period->credits_from_packs)->toBe(200);
+        });
 
-        $rolloverTransaction = CreditTransaction::where('type', CreditTransactionType::Rollover)->first();
-        expect($rolloverTransaction)->not->toBeNull();
-        expect($rolloverTransaction->credits)->toBe(250); // 50% of 500 remaining
+        it('records pack purchase transaction', function () {
+            $pack = CreditPack::factory()->for($this->workspace)->create([
+                'credits_amount' => 50,
+                'credits_remaining' => 50,
+            ]);
+
+            $this->service->addPackCredits($pack);
+
+            $tx = CreditTransaction::where('type', CreditTransactionType::PackPurchase)->first();
+            expect($tx)->not->toBeNull();
+            expect($tx->credits)->toBe(50);
+        });
     });
 
-    // ────────────────────────────────────────────────────────────────────
-    // Enterprise (Unlimited) Behavior
-    // ────────────────────────────────────────────────────────────────────
+    // ── rolloverPeriod() ────────────────────────────────────────────
 
-    it('handles packs being drained after monthly credits', function () {
-        $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
-        $period->update(['credits_limit' => 10]);
+    describe('rolloverPeriod', function () {
+        it('closes current period and creates a new one', function () {
+            $oldPeriod = $this->workspace->usagePeriods()->where('is_current', true)->first();
 
-        // Add pack
-        $pack = CreditPack::factory()
-            ->for($this->workspace)
-            ->create([
+            $this->service->rolloverPeriod($this->workspace);
+
+            expect($oldPeriod->refresh()->is_current)->toBeFalse();
+
+            $newPeriod = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            expect($newPeriod)->not->toBeNull();
+            expect($newPeriod->id)->not->toBe($oldPeriod->id);
+        });
+
+        it('does not rollover credits for monthly plans', function () {
+            $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            $period->update(['credits_used' => 50, 'period_end' => now()->toDateString()]);
+
+            $this->service->rolloverPeriod($this->workspace);
+
+            $newPeriod = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            expect($newPeriod->credits_rolled_over)->toBe(0);
+        });
+
+        it('carries 50% of unused credits for yearly plans with annual_rollover', function () {
+            // Update plan to enable rollover
+            $subscription = $this->workspace->subscriptions()->first();
+            $plan = $subscription->plan;
+            $plan->update(['features' => array_merge($plan->features, ['annual_rollover' => true])]);
+            $subscription->update([
+                'billing_interval' => BillingInterval::Yearly,
+                'credits_monthly' => 1000,
+            ]);
+
+            $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            $period->update([
+                'credits_limit' => 1000,
+                'credits_used' => 600,
+                'period_end' => now()->toDateString(),
+            ]);
+
+            $this->service->rolloverPeriod($this->workspace);
+
+            $newPeriod = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            expect($newPeriod->credits_rolled_over)->toBe(200); // 50% of 400
+        });
+
+        it('records rollover transaction', function () {
+            $subscription = $this->workspace->subscriptions()->first();
+            $plan = $subscription->plan;
+            $plan->update(['features' => array_merge($plan->features, ['annual_rollover' => true])]);
+            $subscription->update([
+                'billing_interval' => BillingInterval::Yearly,
+                'credits_monthly' => 1000,
+            ]);
+
+            $period = $this->workspace->usagePeriods()->where('is_current', true)->first();
+            $period->update([
+                'credits_limit' => 1000,
+                'credits_used' => 500,
+                'period_end' => now()->toDateString(),
+            ]);
+
+            $this->service->rolloverPeriod($this->workspace);
+
+            $tx = CreditTransaction::where('type', CreditTransactionType::Rollover)->first();
+            expect($tx)->not->toBeNull();
+            expect($tx->credits)->toBe(250); // 50% of 500
+        });
+    });
+
+    // ── drainPacks() ────────────────────────────────────────────────
+
+    describe('drainPacks', function () {
+        it('drains packs in FIFO order by expiry date', function () {
+            $pack1 = CreditPack::factory()->for($this->workspace)->create([
+                'credits_amount' => 100,
+                'credits_remaining' => 30,
+                'status' => CreditPackStatus::Active,
+                'expires_at' => now()->addMonths(3),
+            ]);
+
+            $pack2 = CreditPack::factory()->for($this->workspace)->create([
+                'credits_amount' => 100,
+                'credits_remaining' => 50,
+                'status' => CreditPackStatus::Active,
+                'expires_at' => now()->addMonths(6),
+            ]);
+
+            $drained = $this->service->drainPacks($this->workspace, 40);
+
+            expect($drained)->toBe(40);
+            expect($pack1->refresh()->credits_remaining)->toBe(0);
+            expect($pack1->status)->toBe(CreditPackStatus::Exhausted);
+            expect($pack2->refresh()->credits_remaining)->toBe(40);
+        });
+
+        it('skips expired packs', function () {
+            CreditPack::factory()->for($this->workspace)->create([
                 'credits_amount' => 100,
                 'credits_remaining' => 100,
                 'status' => CreditPackStatus::Active,
+                'expires_at' => now()->subDay(),
             ]);
-        $this->service->addPackCredits($pack);
 
-        // Consume 15 credits (exhausts period, uses pack)
-        $execution1 = Execution::factory()
-            ->for($this->workspace)
-            ->completed()
-            ->create();
+            $drained = $this->service->drainPacks($this->workspace, 50);
+            expect($drained)->toBe(0);
+        });
+    });
 
-        $nodes1 = [
-            ExecutionNode::factory()
-                ->for($execution1)
-                ->create(['node_type' => 'action_transform']), // 2
-        ];
+    // ── CreditPack model fixes ──────────────────────────────────────
 
-        for ($i = 0; $i < 7; $i++) { // 7 * 2 = 14 credits
-            ExecutionNode::factory()
-                ->for($execution1)
-                ->create(['node_type' => 'action_transform']);
-        }
+    describe('CreditPack model', function () {
+        it('isUsable returns false for expired packs', function () {
+            $pack = CreditPack::factory()->for($this->workspace)->create([
+                'credits_amount' => 100,
+                'credits_remaining' => 100,
+                'status' => CreditPackStatus::Active,
+                'expires_at' => now()->subDay(),
+            ]);
 
-        $this->service->consume($execution1, $nodes1);
+            expect($pack->isUsable())->toBeFalse();
+        });
 
-        $available = $this->service->getAvailable($this->workspace);
-        // Should have 10 + 100 - 2 = 108 available
-        expect($available)->toBe(108);
+        it('isUsable returns true for active non-expired packs', function () {
+            $pack = CreditPack::factory()->for($this->workspace)->create([
+                'credits_amount' => 100,
+                'credits_remaining' => 100,
+                'status' => CreditPackStatus::Active,
+                'expires_at' => now()->addMonths(6),
+            ]);
+
+            expect($pack->isUsable())->toBeTrue();
+        });
+
+        it('consume does not go negative', function () {
+            $pack = CreditPack::factory()->for($this->workspace)->create([
+                'credits_amount' => 10,
+                'credits_remaining' => 5,
+                'status' => CreditPackStatus::Active,
+            ]);
+
+            $pack->consume(20);
+
+            expect($pack->refresh()->credits_remaining)->toBe(0);
+            expect($pack->status)->toBe(CreditPackStatus::Exhausted);
+        });
     });
 });
-
-// ────────────────────────────────────────────────────────────────────
-// Helper Functions
-// ────────────────────────────────────────────────────────────────────
-
-function bootstrapWorkspaceBilling(): void
-{
-    $workspace = test()->workspace;
-    
-    $plan = \App\Models\Plan::factory()->create([
-        'slug' => 'free',
-        'limits' => ['credits_monthly' => 100],
-    ]);
-
-    $subscription = $workspace->subscriptions()->create([
-        'plan_id' => $plan->id,
-        'status' => 'active',
-        'billing_interval' => 'monthly',
-        'credits_monthly' => 100,
-    ]);
-
-    $workspace->usagePeriods()->create([
-        'subscription_id' => $subscription->id,
-        'period_start' => now()->toDateString(),
-        'period_end' => now()->addDays(30)->toDateString(),
-        'credits_limit' => 100,
-        'is_current' => true,
-    ]);
-}

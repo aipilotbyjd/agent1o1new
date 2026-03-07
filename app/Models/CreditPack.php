@@ -55,12 +55,17 @@ class CreditPack extends Model
 
     public function isUsable(): bool
     {
-        return $this->status === CreditPackStatus::Active && $this->credits_remaining > 0;
+        return $this->status === CreditPackStatus::Active
+            && $this->credits_remaining > 0
+            && ($this->expires_at === null || $this->expires_at->isFuture());
     }
 
     public function consume(int $amount): void
     {
-        $this->decrement('credits_remaining', $amount);
+        $toConsume = min($amount, $this->credits_remaining);
+
+        $this->decrement('credits_remaining', $toConsume);
+        $this->refresh();
 
         if ($this->credits_remaining <= 0) {
             $this->update(['status' => CreditPackStatus::Exhausted]);

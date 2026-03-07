@@ -8,6 +8,7 @@ use App\Models\ConnectorCallAttempt;
 use App\Models\Execution;
 use App\Models\ExecutionNode;
 use App\Models\JobStatus;
+use App\Services\CreditMeterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
@@ -123,6 +124,12 @@ class JobCallbackController extends Controller
         // Append deterministic fixtures to replay pack
         if (! empty($validated['deterministic_fixtures'])) {
             $this->appendFixtures($execution, $validated['deterministic_fixtures']);
+        }
+
+        // Charge credits on completed execution (idempotent)
+        if ($executionStatus === ExecutionStatus::Completed) {
+            $executionNodes = $execution->nodes()->get()->all();
+            app(CreditMeterService::class)->consume($execution, $executionNodes);
         }
 
         // Publish SSE event

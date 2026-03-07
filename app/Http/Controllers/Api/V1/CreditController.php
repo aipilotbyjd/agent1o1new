@@ -3,47 +3,34 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Resources\Api\V1\CreditBalanceResource;
+use App\Http\Resources\Api\V1\CreditTransactionResource;
+use App\Models\Workspace;
+use App\Services\CreditMeterService;
+use Illuminate\Http\JsonResponse;
 
 class CreditController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Get current credit balance for the workspace.
      */
-    public function index()
+    public function balance(Workspace $workspace, CreditMeterService $creditMeter): JsonResponse
     {
-        //
+        return response()->json([
+            'data' => new CreditBalanceResource($workspace),
+        ]);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Get credit transaction history for the workspace.
      */
-    public function store(Request $request)
+    public function transactions(Workspace $workspace): JsonResponse
     {
-        //
-    }
+        $transactions = $workspace->creditTransactions()
+            ->with('execution:id,workflow_id,status')
+            ->latest('created_at')
+            ->paginate(25);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return CreditTransactionResource::collection($transactions)->response();
     }
 }

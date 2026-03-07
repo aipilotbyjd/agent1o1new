@@ -14,6 +14,13 @@ class CreditTransactionResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'type' => $this->type->value,
+            'credits' => $this->credits,
+            'description' => $this->description,
+            'execution_id' => $this->execution_id,
+            'created_at' => $this->created_at?->toIso8601String(),
+        ];
     }
 }
