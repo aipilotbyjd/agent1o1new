@@ -119,4 +119,28 @@ class Workspace extends Model
     {
         return $this->hasMany(ActivityLog::class);
     }
+
+    /**
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * @return HasMany<WorkspaceUsagePeriod, $this>
+     */
+    public function usagePeriods(): HasMany
+    {
+        return $this->hasMany(WorkspaceUsagePeriod::class);
+    }
+
+    /**
+     * @return HasMany<CreditPack, $this>
+     */
+    public function creditPacks(): HasMany
+    {
+        return $this->hasMany(CreditPack::class);
+    }
 }

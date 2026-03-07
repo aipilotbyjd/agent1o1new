@@ -2,9 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\BillingInterval;
 use App\Enums\Role;
+use App\Enums\SubscriptionStatus;
+use App\Models\Plan;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 
 class WorkspaceService
@@ -22,12 +26,50 @@ class WorkspaceService
             'owner_id' => $owner->id,
         ]);
 
+        // Assign owner to workspace_members
         $workspace->members()->attach($owner->id, [
             'role' => Role::Owner->value,
             'joined_at' => now(),
         ]);
 
+        // Bootstrap billing state
+        $this->bootstrapBilling($workspace);
+
         return $workspace;
+    }
+
+    /**
+     * Bootstrap billing state for a new workspace.
+     */
+    private function bootstrapBilling(Workspace $workspace): void
+    {
+        // Look up the 'free' plan
+        $freePlan = Plan::query()->where('slug', 'free')->firstOrFail();
+        $monthlyCredits = $freePlan->getLimit('credits_monthly');
+
+        // Create a Subscription row
+        $subscription = $workspace->subscriptions()->create([
+            'plan_id' => $freePlan->id,
+            'status' => SubscriptionStatus::Active,
+            'billing_interval' => BillingInterval::Monthly,
+            'credits_monthly' => $monthlyCredits,
+        ]);
+
+        // Create a WorkspaceUsagePeriod row
+        $workspace->usagePeriods()->create([
+            'subscription_id' => $subscription->id,
+            'period_start' => now()->toDateString(),
+            'period_end' => now()->addDays(30)->toDateString(),
+            'credits_limit' => $monthlyCredits,
+            'is_current' => true,
+        ]);
+
+        // Initialize Redis key for available credits
+        try {
+            Redis::set("credits:available:{$workspace->id}", $monthlyCredits);
+        } catch (\Exception) {
+            // Redis not available (e.g., in testing environment)
+        }
     }
 
     /**

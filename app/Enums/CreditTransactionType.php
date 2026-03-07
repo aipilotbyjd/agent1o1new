@@ -2,13 +2,14 @@
 
 namespace App\Enums;
 
-class CreditTransactionType
+enum CreditTransactionType: string
 {
-    /**
-     * Create a new class instance.
-     */
-    public function __construct()
-    {
-        //
-    }
+    case Execution = 'execution';
+    case AiExecution = 'ai_execution';
+    case CodeExecution = 'code_execution';
+    case Refund = 'refund';
+    case Adjustment = 'adjustment';
+    case PackPurchase = 'pack_purchase';
+    case Bonus = 'bonus';
+    case Rollover = 'rollover';
 }

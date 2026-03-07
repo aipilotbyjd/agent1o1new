@@ -28,6 +28,9 @@ function createOwnerWithWorkspace(): array
 test('authenticated user can create a workspace', function () {
     $user = User::factory()->create();
 
+    // Create the free plan required for workspace bootstrap
+    \App\Models\Plan::factory()->free()->create();
+
     $response = $this->actingAs($user, 'api')
         ->postJson('/api/v1/workspaces', ['name' => 'My Workspace']);
 

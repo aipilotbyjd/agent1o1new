@@ -6,20 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('credit_transactions', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('usage_period_id')->constrained('workspace_usage_periods');
+            $table->string('type');
+            $table->integer('credits');
+            $table->string('description')->nullable();
+            $table->foreignId('execution_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('execution_node_id')->nullable();
+            $table->timestamp('created_at')->nullable();
+
+            $table->index(['workspace_id', 'created_at']);
+            $table->index(['usage_period_id', 'type']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('credit_transactions');

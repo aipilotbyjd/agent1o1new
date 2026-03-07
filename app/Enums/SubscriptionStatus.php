@@ -2,13 +2,11 @@
 
 namespace App\Enums;
 
-class SubscriptionStatus
+enum SubscriptionStatus: string
 {
-    /**
-     * Create a new class instance.
-     */
-    public function __construct()
-    {
-        //
-    }
+    case Active = 'active';
+    case Trialing = 'trialing';
+    case PastDue = 'past_due';
+    case Canceled = 'canceled';
+    case Expired = 'expired';
 }
