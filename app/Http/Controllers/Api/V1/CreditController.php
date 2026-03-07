@@ -7,18 +7,22 @@ use App\Http\Resources\Api\V1\CreditBalanceResource;
 use App\Http\Resources\Api\V1\CreditTransactionResource;
 use App\Models\Workspace;
 use App\Services\CreditMeterService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
 class CreditController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Get current credit balance for the workspace.
      */
     public function balance(Workspace $workspace, CreditMeterService $creditMeter): JsonResponse
     {
-        return response()->json([
-            'data' => new CreditBalanceResource($workspace),
-        ]);
+        return $this->successResponse(
+            'Credit balance retrieved successfully.',
+            new CreditBalanceResource($workspace)
+        );
     }
 
     /**
@@ -31,6 +35,9 @@ class CreditController extends Controller
             ->latest('created_at')
             ->paginate(25);
 
-        return CreditTransactionResource::collection($transactions)->response();
+        return $this->paginatedResponse(
+            'Credit transactions retrieved successfully.',
+            CreditTransactionResource::collection($transactions)
+        );
     }
 }
