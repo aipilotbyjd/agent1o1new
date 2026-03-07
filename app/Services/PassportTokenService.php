@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\ApiException;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
+use Laravel\Passport\AccessToken;
 use Laravel\Passport\RefreshToken;
 use Laravel\Passport\Token;
 
@@ -61,13 +62,15 @@ class PassportTokenService
     /**
      * Revoke the given access token and its associated refresh tokens.
      */
-    public function revokeToken(Token $token): void
+    public function revokeToken(Token|AccessToken $token): void
     {
         $token->revoke();
 
-        RefreshToken::query()
-            ->where('access_token_id', $token->id)
-            ->update(['revoked' => true]);
+        if ($token instanceof Token) {
+            RefreshToken::query()
+                ->where('access_token_id', $token->id)
+                ->update(['revoked' => true]);
+        }
     }
 
     /**
