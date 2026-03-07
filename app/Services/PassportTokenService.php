@@ -90,14 +90,21 @@ class PassportTokenService
     /**
      * Revoke all tokens except the given one (for password change).
      */
-    public function revokeOtherTokens(User $user, Token $currentToken): void
+    public function revokeOtherTokens(User $user, Token|AccessToken $currentToken): void
     {
+        $tokenId = match (true) {
+            method_exists($currentToken, 'getKey') => $currentToken->getKey(),
+            method_exists($currentToken, 'getIdentifier') => $currentToken->getIdentifier(),
+            isset($currentToken->id) => $currentToken->id,
+            default => (string) ($currentToken->id ?? $currentToken),
+        };
+
         $otherTokenIds = $user->tokens()
-            ->where('id', '!=', $currentToken->id)
+            ->where('id', '!=', $tokenId)
             ->pluck('id');
 
         $user->tokens()
-            ->where('id', '!=', $currentToken->id)
+            ->where('id', '!=', $tokenId)
             ->update(['revoked' => true]);
 
         RefreshToken::query()
