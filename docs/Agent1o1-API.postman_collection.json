@@ -1,0 +1,2991 @@
+{
+  "info": {
+    "name": "Agent1o1 API v1",
+    "description": "Complete API collection for Agent1o1 workflow automation platform.\n\n## Setup\n1. Set `base_url` variable (default: `http://agent1o1new.test`)\n2. Run **Register** or **Login** to auto-set the `access_token`\n3. Create a workspace → auto-sets `workspace_id`\n4. Start using all endpoints!\n\n## Auto-set Variables\n- `access_token` — Set after Login/Register\n- `workspace_id` — Set after Create Workspace\n- `workflow_id` — Set after Create Workflow\n- `execution_id` — Set after Execute Workflow\n- `credential_id` — Set after Create Credential\n- `variable_id` — Set after Create Variable\n- `tag_id` — Set after Create Tag\n- `webhook_id` — Set after Create Webhook\n- `version_id` — Set after Create Version",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://agent1o1new.test",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "workspace_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "workflow_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "execution_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "credential_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "variable_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tag_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhook_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "version_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invitation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invitation_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "member_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "node_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "activity_log_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.token) {",
+                  "        pm.collectionVariables.set('access_token', json.data.token);",
+                  "        console.log('✅ access_token saved');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.token) {",
+                  "        pm.collectionVariables.set('access_token', json.data.token);",
+                  "        console.log('✅ access_token saved');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.token) {",
+                  "        pm.collectionVariables.set('access_token', json.data.token);",
+                  "        console.log('✅ access_token refreshed');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"john@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"reset-token-here\",\n    \"email\": \"john@example.com\",\n    \"password\": \"newpassword123\",\n    \"password_confirmation\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Resend Verification Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/resend-verification-email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "resend-verification-email"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/verify-email/:id/:hash",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "verify-email",
+                ":id",
+                ":hash"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                },
+                {
+                  "key": "hash",
+                  "value": "verification-hash"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 User",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/user",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Updated\",\n    \"email\": \"john.updated@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/user",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"current_password\": \"password123\",\n    \"password\": \"newpassword456\",\n    \"password_confirmation\": \"newpassword456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/user/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/user/avatar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "avatar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Avatar",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/user/avatar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "avatar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/user",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏢 Workspaces",
+      "item": [
+        {
+          "name": "List Workspaces",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Workspace",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('workspace_id', json.data.id);",
+                  "        console.log('✅ workspace_id saved: ' + json.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"My Workspace\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Workspace",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Workspace",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Workspace\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Workspace",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Leave Workspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/leave",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "leave"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/activity-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "activity-logs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Activity Log",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/activity-logs/{{activity_log_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "activity-logs",
+                "{{activity_log_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Members",
+      "item": [
+        {
+          "name": "List Members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "members"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Member Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"editor\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/members/{{member_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "members",
+                "{{member_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/members/{{member_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "members",
+                "{{member_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📨 Invitations",
+      "item": [
+        {
+          "name": "List Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/invitations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "invitations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Invitation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('invitation_id', json.data.id);",
+                  "        if (json.data.token) pm.collectionVariables.set('invitation_token', json.data.token);",
+                  "        console.log('✅ invitation_id saved');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"teammate@example.com\",\n    \"role\": \"editor\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/invitations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "invitations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/invitations/{{invitation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "invitations",
+                "{{invitation_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invitations/{{invitation_token}}/accept",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invitations",
+                "{{invitation_token}}",
+                "accept"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Decline Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invitations/{{invitation_token}}/decline",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invitations",
+                "{{invitation_token}}",
+                "decline"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚡ Workflows",
+      "item": [
+        {
+          "name": "List Workflows",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows?search=&is_active=&sort_by=name&sort_direction=asc&per_page=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name"
+                },
+                {
+                  "key": "is_active",
+                  "value": "",
+                  "description": "Filter: true/false"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "name",
+                  "description": "name, created_at, updated_at"
+                },
+                {
+                  "key": "sort_direction",
+                  "value": "asc",
+                  "description": "asc or desc"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "description": "Max 100"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Workflow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('workflow_id', json.data.id);",
+                  "        console.log('✅ workflow_id saved: ' + json.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"My Workflow\",\n    \"description\": \"A sample workflow\",\n    \"icon\": \"bolt\",\n    \"color\": \"#6366f1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Workflow",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Workflow",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Workflow\",\n    \"description\": \"Updated description\",\n    \"icon\": \"zap\",\n    \"color\": \"#10b981\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Workflow",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Activate Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "activate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deactivate Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "deactivate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Duplicate Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/duplicate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "duplicate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Execute Workflow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('execution_id', json.data.id);",
+                  "        console.log('✅ execution_id saved: ' + json.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"trigger_data\": {\n        \"key\": \"value\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/execute",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "execute"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Workflow Executions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/executions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "executions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Webhook for Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/webhook",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "webhook"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Workflow Versions",
+      "item": [
+        {
+          "name": "List Versions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/versions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "versions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Version",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('version_id', json.data.id);",
+                  "        console.log('✅ version_id saved: ' + json.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"v1.0\",\n    \"description\": \"Initial version\",\n    \"trigger_type\": \"webhook\",\n    \"trigger_config\": {},\n    \"nodes\": [\n        {\n            \"id\": \"node_1\",\n            \"type\": \"webhook_trigger\",\n            \"position\": { \"x\": 100, \"y\": 200 },\n            \"config\": {}\n        },\n        {\n            \"id\": \"node_2\",\n            \"type\": \"http_request\",\n            \"position\": { \"x\": 400, \"y\": 200 },\n            \"config\": {\n                \"url\": \"https://api.example.com/data\",\n                \"method\": \"GET\"\n            }\n        }\n    ],\n    \"edges\": [\n        {\n            \"source\": \"node_1\",\n            \"target\": \"node_2\"\n        }\n    ],\n    \"viewport\": { \"x\": 0, \"y\": 0, \"zoom\": 1 },\n    \"settings\": {},\n    \"change_summary\": \"Initial workflow version\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/versions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "versions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Version",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/versions/{{version_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "versions",
+                "{{version_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Publish Version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/versions/{{version_id}}/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "versions",
+                "{{version_id}}",
+                "publish"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rollback Version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/versions/{{version_id}}/rollback",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "versions",
+                "{{version_id}}",
+                "rollback"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Diff Versions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/versions/diff?from=1&to=2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "versions",
+                "diff"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "1",
+                  "description": "From version number"
+                },
+                {
+                  "key": "to",
+                  "value": "2",
+                  "description": "To version number"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚀 Executions",
+      "item": [
+        {
+          "name": "List Executions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions?status=&per_page=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter: pending, running, completed, failed"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Execution Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Execution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/{{execution_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "{{execution_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Execution Nodes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/{{execution_id}}/nodes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "{{execution_id}}",
+                "nodes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Execution Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/{{execution_id}}/logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "{{execution_id}}",
+                "logs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Execution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/{{execution_id}}/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "{{execution_id}}",
+                "cancel"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Retry Execution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/{{execution_id}}/retry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "{{execution_id}}",
+                "retry"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Execution",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/{{execution_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "{{execution_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔑 Credentials",
+      "item": [
+        {
+          "name": "List Credentials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/credentials",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "credentials"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Credential",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('credential_id', json.data.id);",
+                  "        console.log('✅ credential_id saved: ' + json.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"OpenAI API Key\",\n    \"type\": \"openai\",\n    \"data\": {\n        \"api_key\": \"sk-xxxxxxxxxxxx\"\n    },\n    \"expires_at\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/credentials",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "credentials"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Credential",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/credentials/{{credential_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "credentials",
+                "{{credential_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Credential",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"OpenAI Key Updated\",\n    \"data\": {\n        \"api_key\": \"sk-newkey\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/credentials/{{credential_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "credentials",
+                "{{credential_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Test Credential",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/credentials/{{credential_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "credentials",
+                "{{credential_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Credential",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/credentials/{{credential_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "credentials",
+                "{{credential_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 Variables",
+      "item": [
+        {
+          "name": "List Variables",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/variables",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "variables"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Variable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('variable_id', json.data.id);",
+                  "        console.log('✅ variable_id saved: ' + json.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"key\": \"API_BASE_URL\",\n    \"value\": \"https://api.example.com\",\n    \"description\": \"Base URL for external API\",\n    \"is_secret\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/variables",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "variables"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Variable",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/variables/{{variable_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "variables",
+                "{{variable_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Variable",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"key\": \"API_BASE_URL\",\n    \"value\": \"https://api-v2.example.com\",\n    \"description\": \"Updated base URL\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/variables/{{variable_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "variables",
+                "{{variable_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Variable",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/variables/{{variable_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "variables",
+                "{{variable_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏷️ Tags",
+      "item": [
+        {
+          "name": "List Tags",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/tags",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "tags"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Tag",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('tag_id', json.data.id);",
+                  "        console.log('✅ tag_id saved: ' + json.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"production\",\n    \"color\": \"green\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/tags",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "tags"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Tag",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/tags/{{tag_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "tags",
+                "{{tag_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Tag",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"staging\",\n    \"color\": \"yellow\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/tags/{{tag_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "tags",
+                "{{tag_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Tag",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/tags/{{tag_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "tags",
+                "{{tag_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Attach Workflows to Tag",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"workflow_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/tags/{{tag_id}}/workflows",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "tags",
+                "{{tag_id}}",
+                "workflows"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detach Workflows from Tag",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"workflow_ids\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/tags/{{tag_id}}/workflows",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "tags",
+                "{{tag_id}}",
+                "workflows"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🌐 Webhooks",
+      "item": [
+        {
+          "name": "List Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/webhooks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "webhooks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Webhook",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/webhooks/{{webhook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "webhooks",
+                "{{webhook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Webhook",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"path\": \"my-webhook\",\n    \"methods\": [\"POST\", \"PUT\"],\n    \"is_active\": true,\n    \"auth_type\": \"bearer\",\n    \"auth_config\": {\n        \"token\": \"my-secret-token\"\n    },\n    \"rate_limit\": 100,\n    \"response_mode\": \"immediate\",\n    \"response_status\": 200,\n    \"response_body\": {\n        \"message\": \"Received\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/webhooks/{{webhook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "webhooks",
+                "{{webhook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Webhook",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/webhooks/{{webhook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "webhooks",
+                "{{webhook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Receive Webhook (External)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"event\": \"order.created\",\n    \"data\": {\n        \"id\": 123\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/webhook/:uuid",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhook",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "your-webhook-uuid"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Credits",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/credits/balance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "credits",
+                "balance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Credit Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/credits/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "credits",
+                "transactions"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧩 Node Catalog",
+      "item": [
+        {
+          "name": "List Nodes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/nodes?search=&category_id=&node_kind=&is_premium=&sort_by=name&sort_direction=asc&per_page=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name"
+                },
+                {
+                  "key": "category_id",
+                  "value": "",
+                  "description": "Filter by category ID"
+                },
+                {
+                  "key": "node_kind",
+                  "value": "",
+                  "description": "Filter: trigger, action, condition, transform"
+                },
+                {
+                  "key": "is_premium",
+                  "value": "",
+                  "description": "Filter: true/false"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "name",
+                  "description": "name, node_kind, created_at"
+                },
+                {
+                  "key": "sort_direction",
+                  "value": "asc"
+                },
+                {
+                  "key": "per_page",
+                  "value": "50",
+                  "description": "Max 100"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Node",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/nodes/{{node_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes",
+                "{{node_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Node Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/node-categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "node-categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Node Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/node-categories/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "node-categories",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔧 Credential Types",
+      "item": [
+        {
+          "name": "List Credential Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/credential-types",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "credential-types"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Credential Type",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/credential-types/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "credential-types",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔄 Job Callbacks (Internal)",
+      "description": "Internal endpoints used by the Go execution engine. Not for direct use.",
+      "item": [
+        {
+          "name": "Job Callback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"job_id\": \"job-uuid\",\n    \"callback_token\": \"token\",\n    \"status\": \"completed\",\n    \"output\": {},\n    \"nodes\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/callback",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "callback"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Job Progress",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"job_id\": \"job-uuid\",\n    \"callback_token\": \"token\",\n    \"node_id\": \"node_1\",\n    \"status\": \"running\",\n    \"output\": {}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/progress",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jobs",
+                "progress"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
