@@ -247,7 +247,7 @@ test('webhook with bearer auth rejects unauthorized requests', function () {
     [$owner, $workspace, $workflow] = setupWebhookWorkspace();
     $webhook = createWebhook($workspace, $workflow, [
         'auth_type' => 'bearer',
-        'auth_config' => json_encode(['token' => 'secret-token-123']),
+        'auth_config' => ['token' => 'secret-token-123'],
     ]);
 
     // Without token
@@ -266,7 +266,7 @@ test('webhook with bearer auth accepts authorized requests', function () {
     [$owner, $workspace, $workflow] = setupWebhookWorkspace();
     $webhook = createWebhook($workspace, $workflow, [
         'auth_type' => 'bearer',
-        'auth_config' => json_encode(['token' => 'secret-token-123']),
+        'auth_config' => ['token' => 'secret-token-123'],
     ]);
 
     $response = $this->postJson("/api/v1/webhook/{$webhook->uuid}", ['data' => 'test'], [

@@ -32,7 +32,7 @@ class WebhookService
             'methods' => $data['methods'] ?? ['POST'],
             'is_active' => true,
             'auth_type' => $data['auth_type'] ?? 'none',
-            'auth_config' => isset($data['auth_config']) ? json_encode($data['auth_config']) : null,
+            'auth_config' => $data['auth_config'] ?? null,
             'rate_limit' => $data['rate_limit'] ?? null,
             'response_mode' => $data['response_mode'] ?? 'immediate',
             'response_status' => $data['response_status'] ?? 200,
@@ -47,10 +47,6 @@ class WebhookService
      */
     public function update(Webhook $webhook, array $data): Webhook
     {
-        if (isset($data['auth_config'])) {
-            $data['auth_config'] = json_encode($data['auth_config']);
-        }
-
         $webhook->update($data);
 
         return $webhook;
@@ -79,6 +75,8 @@ class WebhookService
                 'response_body' => ['error' => 'Webhook is inactive.'],
             ];
         }
+
+        $webhook->loadMissing(['workflow.creator', 'workspace.owner']);
 
         $workflow = $webhook->workflow;
 
@@ -113,8 +111,7 @@ class WebhookService
         }
 
         // Update call stats
-        $webhook->increment('call_count');
-        $webhook->update(['last_called_at' => now()]);
+        $webhook->increment('call_count', 1, ['last_called_at' => now()]);
 
         // Trigger execution
         $triggerData = [
@@ -139,7 +136,7 @@ class WebhookService
                 'response_body' => $webhook->response_body ?? ['success' => true, 'execution_id' => $execution->id],
             ];
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Webhook trigger failed: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::error('Webhook trigger failed: '.$e->getMessage(), [
                 'exception' => $e,
                 'webhook_uuid' => $webhook->uuid,
                 'workflow_id' => $workflow->id,
@@ -163,7 +160,7 @@ class WebhookService
             return true;
         }
 
-        $config = json_decode($webhook->auth_config ?? '{}', true) ?? [];
+        $config = $webhook->auth_config ?? [];
 
         return match ($webhook->auth_type) {
             'bearer' => $this->verifyBearerAuth($config, $headers),

@@ -38,6 +38,7 @@ class Webhook extends Model
         return [
             'methods' => 'array',
             'is_active' => 'boolean',
+            'auth_config' => 'array',
             'response_body' => 'array',
             'last_called_at' => 'datetime',
         ];

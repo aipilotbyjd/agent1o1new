@@ -53,7 +53,7 @@ class WebhookFactory extends Factory
     {
         return $this->state(fn () => [
             'auth_type' => 'bearer',
-            'auth_config' => json_encode(['token' => $token]),
+            'auth_config' => ['token' => $token],
         ]);
     }
 

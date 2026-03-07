@@ -157,11 +157,13 @@ class CreditMeterService
                 'created_at' => now(),
             ]);
 
-            $period->increment('credits_used', $cost);
-            $period->increment('executions_total');
-            $period->increment('executions_succeeded');
-            $period->increment('nodes_executed', $nodeStats['total']);
-            $period->increment('ai_nodes_executed', $nodeStats['ai']);
+            $period->query()->where('id', $period->id)->update([
+                'credits_used' => DB::raw("credits_used + {$cost}"),
+                'executions_total' => DB::raw('executions_total + 1'),
+                'executions_succeeded' => DB::raw('executions_succeeded + 1'),
+                'nodes_executed' => DB::raw("nodes_executed + {$nodeStats['total']}"),
+                'ai_nodes_executed' => DB::raw("ai_nodes_executed + {$nodeStats['ai']}"),
+            ]);
 
             $execution->update(['credits_consumed' => $cost]);
         });

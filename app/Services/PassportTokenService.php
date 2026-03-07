@@ -92,20 +92,17 @@ class PassportTokenService
      */
     public function revokeOtherTokens(User $user, Token|AccessToken $currentToken): void
     {
-        $tokenId = match (true) {
-            method_exists($currentToken, 'getKey') => $currentToken->getKey(),
-            method_exists($currentToken, 'getIdentifier') => $currentToken->getIdentifier(),
-            isset($currentToken->id) => $currentToken->id,
-            default => (string) ($currentToken->id ?? $currentToken),
-        };
+        $tokenId = $currentToken->getKey();
 
         $otherTokenIds = $user->tokens()
             ->where('id', '!=', $tokenId)
             ->pluck('id');
 
-        $user->tokens()
-            ->where('id', '!=', $tokenId)
-            ->update(['revoked' => true]);
+        if ($otherTokenIds->isEmpty()) {
+            return;
+        }
+
+        Token::query()->whereIn('id', $otherTokenIds)->update(['revoked' => true]);
 
         RefreshToken::query()
             ->whereIn('access_token_id', $otherTokenIds)
