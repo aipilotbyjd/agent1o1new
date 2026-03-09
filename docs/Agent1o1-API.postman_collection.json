@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Agent1o1 API v1",
-    "description": "Complete API collection for Agent1o1 workflow automation platform.\n\n## Setup\n1. Set `base_url` variable (default: `http://agent1o1new.test`)\n2. Run **Register** or **Login** to auto-set the `access_token`\n3. Create a workspace → auto-sets `workspace_id`\n4. Start using all endpoints!\n\n## Auto-set Variables\n- `access_token` — Set after Login/Register\n- `workspace_id` — Set after Create Workspace\n- `workflow_id` — Set after Create Workflow\n- `execution_id` — Set after Execute Workflow\n- `credential_id` — Set after Create Credential\n- `variable_id` — Set after Create Variable\n- `tag_id` — Set after Create Tag\n- `webhook_id` — Set after Create Webhook\n- `version_id` — Set after Create Version",
+    "description": "Complete API collection for Agent1o1 workflow automation platform.\n\n## Setup\n1. Set `base_url` variable (default: `http://agent1o1new.test`)\n2. Run **Register** or **Login** to auto-set the `access_token`\n3. Create a workspace \u2192 auto-sets `workspace_id`\n4. Start using all endpoints!\n\n## Auto-set Variables\n- `access_token` \u2014 Set after Login/Register\n- `workspace_id` \u2014 Set after Create Workspace\n- `workflow_id` \u2014 Set after Create Workflow\n- `execution_id` \u2014 Set after Execute Workflow\n- `credential_id` \u2014 Set after Create Credential\n- `variable_id` \u2014 Set after Create Variable\n- `tag_id` \u2014 Set after Create Tag\n- `webhook_id` \u2014 Set after Create Webhook\n- `version_id` \u2014 Set after Create Version\n- `share_id` \u2014 Set after Create Share Link\n- `share_token` \u2014 Set after Create Share Link\n- `sticky_note_id` \u2014 Set after Create Sticky Note\n- `pinned_data_id` \u2014 Set after Pin Node Data\n- `template_id` \u2014 Set after List Templates\n- `log_streaming_config_id` \u2014 Set after Create Log Streaming Config",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -79,6 +79,36 @@
       "key": "activity_log_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "share_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sticky_note_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pinned_data_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "log_streaming_config_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "template_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "share_token",
+      "value": "",
+      "type": "string"
     }
   ],
   "auth": {
@@ -104,7 +134,7 @@
   ],
   "item": [
     {
-      "name": "🏥 Health",
+      "name": "\ud83c\udfe5 Health",
       "item": [
         {
           "name": "Health Check",
@@ -130,7 +160,7 @@
       ]
     },
     {
-      "name": "🔐 Auth",
+      "name": "\ud83d\udd10 Auth",
       "item": [
         {
           "name": "Register",
@@ -144,7 +174,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.token) {",
                   "        pm.collectionVariables.set('access_token', json.data.token);",
-                  "        console.log('✅ access_token saved');",
+                  "        console.log('\u2705 access_token saved');",
                   "    }",
                   "}"
                 ]
@@ -196,7 +226,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.token) {",
                   "        pm.collectionVariables.set('access_token', json.data.token);",
-                  "        console.log('✅ access_token saved');",
+                  "        console.log('\u2705 access_token saved');",
                   "    }",
                   "}"
                 ]
@@ -248,7 +278,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.token) {",
                   "        pm.collectionVariables.set('access_token', json.data.token);",
-                  "        console.log('✅ access_token refreshed');",
+                  "        console.log('\u2705 access_token refreshed');",
                   "    }",
                   "}"
                 ]
@@ -436,7 +466,7 @@
       ]
     },
     {
-      "name": "👤 User",
+      "name": "\ud83d\udc64 User",
       "item": [
         {
           "name": "Get Profile",
@@ -608,7 +638,7 @@
       ]
     },
     {
-      "name": "🏢 Workspaces",
+      "name": "\ud83c\udfe2 Workspaces",
       "item": [
         {
           "name": "List Workspaces",
@@ -645,7 +675,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('workspace_id', json.data.id);",
-                  "        console.log('✅ workspace_id saved: ' + json.data.id);",
+                  "        console.log('\u2705 workspace_id saved: ' + json.data.id);",
                   "    }",
                   "}"
                 ]
@@ -836,11 +866,52 @@
               ]
             }
           }
+        },
+        {
+          "name": "Export Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/activity-logs/export?from=2025-01-01&to=2026-12-31&action=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "activity-logs",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "action",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Export activity logs as JSON for compliance/audit purposes. Max 10,000 records."
+          }
         }
       ]
     },
     {
-      "name": "👥 Members",
+      "name": "\ud83d\udc65 Members",
       "item": [
         {
           "name": "List Members",
@@ -930,7 +1001,7 @@
       ]
     },
     {
-      "name": "📨 Invitations",
+      "name": "\ud83d\udce8 Invitations",
       "item": [
         {
           "name": "List Invitations",
@@ -970,7 +1041,7 @@
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('invitation_id', json.data.id);",
                   "        if (json.data.token) pm.collectionVariables.set('invitation_token', json.data.token);",
-                  "        console.log('✅ invitation_id saved');",
+                  "        console.log('\u2705 invitation_id saved');",
                   "    }",
                   "}"
                 ]
@@ -1087,7 +1158,7 @@
       ]
     },
     {
-      "name": "⚡ Workflows",
+      "name": "\u26a1 Workflows",
       "item": [
         {
           "name": "List Workflows",
@@ -1153,7 +1224,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('workflow_id', json.data.id);",
-                  "        console.log('✅ workflow_id saved: ' + json.data.id);",
+                  "        console.log('\u2705 workflow_id saved: ' + json.data.id);",
                   "    }",
                   "}"
                 ]
@@ -1370,7 +1441,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('execution_id', json.data.id);",
-                  "        console.log('✅ execution_id saved: ' + json.data.id);",
+                  "        console.log('\u2705 execution_id saved: ' + json.data.id);",
                   "    }",
                   "}"
                 ]
@@ -1467,7 +1538,7 @@
       ]
     },
     {
-      "name": "📋 Workflow Versions",
+      "name": "\ud83d\udccb Workflow Versions",
       "item": [
         {
           "name": "List Versions",
@@ -1508,7 +1579,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('version_id', json.data.id);",
-                  "        console.log('✅ version_id saved: ' + json.data.id);",
+                  "        console.log('\u2705 version_id saved: ' + json.data.id);",
                   "    }",
                   "}"
                 ]
@@ -1677,7 +1748,7 @@
       ]
     },
     {
-      "name": "🚀 Executions",
+      "name": "\ud83d\ude80 Executions",
       "item": [
         {
           "name": "List Executions",
@@ -1900,11 +1971,83 @@
               ]
             }
           }
+        },
+        {
+          "name": "Bulk Delete Executions",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/bulk",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "bulk"
+              ]
+            },
+            "description": "Delete multiple executions at once. Max 100 IDs.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ids\": [\n        1,\n        2,\n        3\n    ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Compare Executions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/compare?execution_a=1&execution_b=2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "compare"
+              ],
+              "query": [
+                {
+                  "key": "execution_a",
+                  "value": "1"
+                },
+                {
+                  "key": "execution_b",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Compare two executions side-by-side, showing input/output differences per node."
+          }
         }
       ]
     },
     {
-      "name": "🔑 Credentials",
+      "name": "\ud83d\udd11 Credentials",
       "item": [
         {
           "name": "List Credentials",
@@ -1943,7 +2086,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('credential_id', json.data.id);",
-                  "        console.log('✅ credential_id saved: ' + json.data.id);",
+                  "        console.log('\u2705 credential_id saved: ' + json.data.id);",
                   "    }",
                   "}"
                 ]
@@ -2097,7 +2240,7 @@
       ]
     },
     {
-      "name": "📦 Variables",
+      "name": "\ud83d\udce6 Variables",
       "item": [
         {
           "name": "List Variables",
@@ -2136,7 +2279,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('variable_id', json.data.id);",
-                  "        console.log('✅ variable_id saved: ' + json.data.id);",
+                  "        console.log('\u2705 variable_id saved: ' + json.data.id);",
                   "    }",
                   "}"
                 ]
@@ -2263,7 +2406,7 @@
       ]
     },
     {
-      "name": "🏷️ Tags",
+      "name": "\ud83c\udff7\ufe0f Tags",
       "item": [
         {
           "name": "List Tags",
@@ -2302,7 +2445,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('tag_id', json.data.id);",
-                  "        console.log('✅ tag_id saved: ' + json.data.id);",
+                  "        console.log('\u2705 tag_id saved: ' + json.data.id);",
                   "    }",
                   "}"
                 ]
@@ -2499,7 +2642,7 @@
       ]
     },
     {
-      "name": "🌐 Webhooks",
+      "name": "\ud83c\udf10 Webhooks",
       "item": [
         {
           "name": "List Webhooks",
@@ -2656,7 +2799,7 @@
       ]
     },
     {
-      "name": "💳 Credits",
+      "name": "\ud83d\udcb3 Credits",
       "item": [
         {
           "name": "Get Balance",
@@ -2713,7 +2856,7 @@
       ]
     },
     {
-      "name": "🧩 Node Catalog",
+      "name": "\ud83e\udde9 Node Catalog",
       "item": [
         {
           "name": "List Nodes",
@@ -2854,7 +2997,7 @@
       ]
     },
     {
-      "name": "🔧 Credential Types",
+      "name": "\ud83d\udd27 Credential Types",
       "item": [
         {
           "name": "List Credential Types",
@@ -2912,7 +3055,1143 @@
       ]
     },
     {
-      "name": "🔄 Job Callbacks (Internal)",
+      "name": "\ud83d\udce4 Workflow Import/Export",
+      "item": [
+        {
+          "name": "Export Workflow",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "export"
+              ]
+            },
+            "description": "Export a workflow as portable JSON format."
+          }
+        },
+        {
+          "name": "Import Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/import",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "import"
+              ]
+            },
+            "description": "Import a workflow from JSON into the workspace.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"workflow_data\": {\n        \"format_version\": \"1.0\",\n        \"workflow\": {\n            \"name\": \"Imported Workflow\",\n            \"description\": \"A workflow imported from JSON\",\n            \"nodes\": [],\n            \"connections\": [],\n            \"settings\": {}\n        }\n    }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd17 Workflow Sharing",
+      "item": [
+        {
+          "name": "List Share Links",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/shares",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "shares"
+              ]
+            },
+            "description": "List all share links for a workflow."
+          }
+        },
+        {
+          "name": "Create Share Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/shares",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "shares"
+              ]
+            },
+            "description": "Create a share link for a workflow.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"is_public\": true,\n    \"allow_clone\": true,\n    \"password\": null,\n    \"expires_at\": \"2026-12-31T23:59:59Z\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('share_id', json.data.id);",
+                  "        console.log('\u2705 share_id saved');",
+                  "    }",
+                  "    if (json.data && json.data.share_token) {",
+                  "        pm.collectionVariables.set('share_token', json.data.share_token);",
+                  "        console.log('\u2705 share_token saved');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Share Link",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/shares/{{share_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "shares",
+                "{{share_id}}"
+              ]
+            },
+            "description": "Update a share link.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"is_public\": false,\n    \"allow_clone\": false,\n    \"password\": \"secret123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Share Link",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/shares/{{share_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "shares",
+                "{{share_id}}"
+              ]
+            },
+            "description": "Delete a share link."
+          }
+        },
+        {
+          "name": "View Shared Workflow (Public)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/shared/{{share_token}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "shared",
+                "{{share_token}}"
+              ]
+            },
+            "description": "View a shared workflow by its public token. No auth required.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Clone Shared Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/shared/{{share_token}}/clone",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "shared",
+                "{{share_token}}",
+                "clone"
+              ]
+            },
+            "description": "Clone a shared workflow into your workspace.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"password\": null\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udccc Sticky Notes",
+      "item": [
+        {
+          "name": "List Sticky Notes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/sticky-notes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "sticky-notes"
+              ]
+            },
+            "description": "List all sticky notes on a workflow canvas."
+          }
+        },
+        {
+          "name": "Create Sticky Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/sticky-notes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "sticky-notes"
+              ]
+            },
+            "description": "Create a sticky note on the workflow canvas.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"Remember to add error handling here\",\n    \"color\": \"#FFEB3B\",\n    \"position_x\": 100.0,\n    \"position_y\": 200.0,\n    \"width\": 200.0,\n    \"height\": 150.0,\n    \"z_index\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('sticky_note_id', json.data.id);",
+                  "        console.log('\u2705 sticky_note_id saved');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Sticky Note",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/sticky-notes/{{sticky_note_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "sticky-notes",
+                "{{sticky_note_id}}"
+              ]
+            },
+            "description": "Update a sticky note.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"Updated note content\",\n    \"color\": \"#4CAF50\",\n    \"position_x\": 150.0,\n    \"position_y\": 250.0\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Sticky Note",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/sticky-notes/{{sticky_note_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "sticky-notes",
+                "{{sticky_note_id}}"
+              ]
+            },
+            "description": "Delete a sticky note from the workflow canvas."
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcce Pinned Node Data",
+      "item": [
+        {
+          "name": "List Pinned Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/pinned-data",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "pinned-data"
+              ]
+            },
+            "description": "List all pinned test data for nodes in a workflow."
+          }
+        },
+        {
+          "name": "Pin Data to Node",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/pinned-data",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "pinned-data"
+              ]
+            },
+            "description": "Pin mock/test data to a node for testing without executing upstream nodes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"node_id\": \"node_1\",\n    \"node_name\": \"HTTP Request\",\n    \"data\": [\n        {\n            \"json\": {\n                \"id\": 1,\n                \"name\": \"Test Item\",\n                \"status\": \"active\"\n            }\n        }\n    ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('pinned_data_id', json.data.id);",
+                  "        console.log('\u2705 pinned_data_id saved');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Toggle Pinned Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/pinned-data/{{pinned_data_id}}/toggle",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "pinned-data",
+                "{{pinned_data_id}}",
+                "toggle"
+              ]
+            },
+            "description": "Toggle whether pinned data is active (used during execution) or inactive."
+          }
+        },
+        {
+          "name": "Delete Pinned Data",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/workflows/{{workflow_id}}/pinned-data/{{pinned_data_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "workflows",
+                "{{workflow_id}}",
+                "pinned-data",
+                "{{pinned_data_id}}"
+              ]
+            },
+            "description": "Remove pinned data from a node."
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce1 Execution Streaming (SSE)",
+      "item": [
+        {
+          "name": "Stream Execution Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/executions/{{execution_id}}/stream",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "executions",
+                "{{execution_id}}",
+                "stream"
+              ]
+            },
+            "description": "Stream real-time execution events via Server-Sent Events (SSE).\n\nConnect via EventSource in the browser:\n```js\nconst es = new EventSource(url, { headers: { Authorization: 'Bearer token' } });\nes.addEventListener('node.started', (e) => console.log(JSON.parse(e.data)));\n```\n\nEvents: node.started, node.completed, node.failed, execution.completed, execution.failed, execution.cancelled"
+          }
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f Workspace Settings",
+      "item": [
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "settings"
+              ]
+            },
+            "description": "Get workspace-level settings (timezone, retention, defaults, Git sync config)."
+          }
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "settings"
+              ]
+            },
+            "description": "Update workspace-level settings.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"timezone\": \"America/New_York\",\n    \"execution_retention_days\": 30,\n    \"default_max_retries\": 3,\n    \"default_timeout_seconds\": 300,\n    \"auto_activate_workflows\": false,\n    \"allow_public_sharing\": true,\n    \"notification_preferences\": {\n        \"execution_failed\": true,\n        \"execution_completed\": false\n    },\n    \"git_repo_url\": \"https://github.com/org/workflows.git\",\n    \"git_branch\": \"main\",\n    \"git_auto_sync\": false\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd10 OAuth2 Credential Flow",
+      "item": [
+        {
+          "name": "Initiate OAuth Flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/oauth/initiate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "oauth",
+                "initiate"
+              ]
+            },
+            "description": "Start the OAuth2 authorization flow. Returns a URL to redirect the user to the provider's consent screen.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"credential_type\": \"google_sheets\",\n    \"credential_id\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "OAuth Callback",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/oauth/callback?state=uuid-state&code=authorization-code",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "oauth",
+                "callback"
+              ],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "uuid-state"
+                },
+                {
+                  "key": "code",
+                  "value": "authorization-code"
+                }
+              ]
+            },
+            "description": "Handle the OAuth2 callback from the provider. This is called by the provider after user grants access. Usually not called manually.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca Log Streaming",
+      "item": [
+        {
+          "name": "List Log Streaming Configs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/log-streaming",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "log-streaming"
+              ]
+            },
+            "description": "List all log streaming configurations for the workspace."
+          }
+        },
+        {
+          "name": "Create Log Streaming Config",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/log-streaming",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "log-streaming"
+              ]
+            },
+            "description": "Create a log streaming configuration to forward execution events to an external destination.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Production Datadog\",\n    \"destination_type\": \"datadog\",\n    \"destination_config\": {\n        \"api_key\": \"your-datadog-api-key\",\n        \"site\": \"datadoghq.com\",\n        \"service\": \"agent1o1\"\n    },\n    \"event_types\": [\n        \"execution.completed\",\n        \"execution.failed\"\n    ],\n    \"is_active\": true,\n    \"include_node_data\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('log_streaming_config_id', json.data.id);",
+                  "        console.log('\u2705 log_streaming_config_id saved');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Log Streaming Config",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/log-streaming/{{log_streaming_config_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "log-streaming",
+                "{{log_streaming_config_id}}"
+              ]
+            },
+            "description": "Get a specific log streaming configuration."
+          }
+        },
+        {
+          "name": "Update Log Streaming Config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/log-streaming/{{log_streaming_config_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "log-streaming",
+                "{{log_streaming_config_id}}"
+              ]
+            },
+            "description": "Update a log streaming configuration.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Config\",\n    \"is_active\": false,\n    \"event_types\": [\n        \"execution.completed\",\n        \"execution.failed\",\n        \"execution.started\"\n    ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Log Streaming Config",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/log-streaming/{{log_streaming_config_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "log-streaming",
+                "{{log_streaming_config_id}}"
+              ]
+            },
+            "description": "Delete a log streaming configuration."
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd04 Git Sync",
+      "item": [
+        {
+          "name": "Git Sync Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/git-sync/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "git-sync",
+                "status"
+              ]
+            },
+            "description": "Get the current Git sync status \u2014 configured repo, branch, last sync timestamp, and per-workflow sync state."
+          }
+        },
+        {
+          "name": "Export for Git",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/git-sync/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "git-sync",
+                "export"
+              ]
+            },
+            "description": "Export all workspace workflows in Git-friendly format for syncing to a repository."
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udccb Workflow Templates",
+      "item": [
+        {
+          "name": "List Templates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/templates?search=&category=&featured=false&per_page=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "templates"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "category",
+                  "value": ""
+                },
+                {
+                  "key": "featured",
+                  "value": "false"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Browse available workflow templates. Filter by search term, category, or featured status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.length > 0) {",
+                  "        pm.collectionVariables.set('template_id', json.data[0].id);",
+                  "        console.log('\u2705 template_id saved from first result');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Template",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/templates/{{template_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "templates",
+                "{{template_id}}"
+              ]
+            },
+            "description": "Get details of a specific workflow template."
+          }
+        },
+        {
+          "name": "Use Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/templates/{{template_id}}/use",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "templates",
+                "{{template_id}}",
+                "use"
+              ]
+            },
+            "description": "Create a new workflow in the workspace from a template."
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd04 Job Callbacks (Internal)",
       "description": "Internal endpoints used by the Go execution engine. Not for direct use.",
       "item": [
         {
