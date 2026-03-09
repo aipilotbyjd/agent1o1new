@@ -32,7 +32,16 @@ class WorkflowController extends Controller
 
         if ($request->filled('search')) {
             $search = str_replace(['%', '_'], ['\%', '\_'], $request->input('search'));
-            $query->where('name', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('tag')) {
+            $query->whereHas('tags', function ($q) use ($request) {
+                $q->where('name', $request->input('tag'));
+            });
         }
 
         if ($request->filled('is_active')) {

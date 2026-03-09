@@ -8,4 +8,5 @@ enum ExecutionMode: string
     case Webhook = 'webhook';
     case Schedule = 'schedule';
     case Retry = 'retry';
+    case Scheduled = 'scheduled';
 }

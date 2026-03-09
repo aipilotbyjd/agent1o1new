@@ -236,4 +236,78 @@ class ExecutionController extends Controller
             ExecutionResource::collection($executions),
         );
     }
+
+    /**
+     * Bulk delete executions.
+     */
+    public function bulkDestroy(Request $request, Workspace $workspace): JsonResponse
+    {
+        $this->can(Permission::ExecutionDelete);
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $deleted = $workspace->executions()
+            ->whereIn('id', $validated['ids'])
+            ->terminal()
+            ->delete();
+
+        return $this->successResponse("Successfully deleted {$deleted} execution(s).");
+    }
+
+    /**
+     * Compare two executions side by side.
+     */
+    public function compare(Request $request, Workspace $workspace): JsonResponse
+    {
+        $this->can(Permission::ExecutionView);
+
+        $validated = $request->validate([
+            'execution_a' => ['required', 'integer'],
+            'execution_b' => ['required', 'integer'],
+        ]);
+
+        $executionA = $workspace->executions()
+            ->with(['nodes', 'workflow'])
+            ->findOrFail($validated['execution_a']);
+
+        $executionB = $workspace->executions()
+            ->with(['nodes', 'workflow'])
+            ->findOrFail($validated['execution_b']);
+
+        $nodesA = $executionA->nodes->keyBy('node_id');
+        $nodesB = $executionB->nodes->keyBy('node_id');
+
+        $allNodeIds = $nodesA->keys()->merge($nodesB->keys())->unique();
+
+        $comparison = [];
+        foreach ($allNodeIds as $nodeId) {
+            $a = $nodesA->get($nodeId);
+            $b = $nodesB->get($nodeId);
+            $comparison[] = [
+                'node_id' => $nodeId,
+                'node_name' => $a?->node_name ?? $b?->node_name,
+                'execution_a' => $a ? [
+                    'status' => $a->status,
+                    'duration_ms' => $a->duration_ms,
+                    'output_data' => $a->output_data,
+                    'error' => $a->error,
+                ] : null,
+                'execution_b' => $b ? [
+                    'status' => $b->status,
+                    'duration_ms' => $b->duration_ms,
+                    'output_data' => $b->output_data,
+                    'error' => $b->error,
+                ] : null,
+            ];
+        }
+
+        return $this->successResponse('Execution comparison retrieved successfully.', [
+            'execution_a' => new ExecutionResource($executionA),
+            'execution_b' => new ExecutionResource($executionB),
+            'node_comparison' => $comparison,
+        ]);
+    }
 }

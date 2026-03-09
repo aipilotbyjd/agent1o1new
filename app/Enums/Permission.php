@@ -108,6 +108,31 @@ enum Permission: string
     // ── Connector Metrics ────────────────────────────────────
     case ConnectorViewMetrics = 'connector.view-metrics';
 
+    // ── Workspace Settings ──────────────────────────────────
+    case SettingView = 'setting.view';
+    case SettingUpdate = 'setting.update';
+
+    // ── Log Streaming ───────────────────────────────────────
+    case LogStreamView = 'log-stream.view';
+    case LogStreamCreate = 'log-stream.create';
+    case LogStreamUpdate = 'log-stream.update';
+    case LogStreamDelete = 'log-stream.delete';
+
+    // ── Git Sync ────────────────────────────────────────────
+    case GitSyncView = 'git-sync.view';
+    case GitSyncExport = 'git-sync.export';
+    case GitSyncImport = 'git-sync.import';
+
+    // ── Sticky Notes ────────────────────────────────────────
+    case StickyNoteView = 'sticky-note.view';
+    case StickyNoteCreate = 'sticky-note.create';
+    case StickyNoteUpdate = 'sticky-note.update';
+    case StickyNoteDelete = 'sticky-note.delete';
+
+    // ── Pinned Data ─────────────────────────────────────────
+    case PinnedDataView = 'pinned-data.view';
+    case PinnedDataManage = 'pinned-data.manage';
+
     // ── Helpers ──────────────────────────────────────────────
 
     /**

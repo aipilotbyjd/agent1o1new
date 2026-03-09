@@ -112,7 +112,7 @@ class ExecuteWorkflowJob implements ShouldQueue
                 'settings' => $version->settings ?? [],
             ],
             'trigger_data' => $execution->trigger_data ?? [],
-            'credentials' => (object) [],
+            'credentials' => $this->resolveCredentials($workflow, $version),
             'variables' => $variables,
             'callback_url' => "{$apiUrl}/api/v1/jobs/callback",
             'progress_url' => "{$apiUrl}/api/v1/jobs/progress",
@@ -126,5 +126,31 @@ class ExecuteWorkflowJob implements ShouldQueue
             ],
             'created_at' => now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveCredentials(\App\Models\Workflow $workflow, \App\Models\WorkflowVersion $version): array
+    {
+        $credentials = [];
+
+        $workflowCredentials = $workflow->credentials()->get();
+
+        foreach ($workflowCredentials as $credential) {
+            $nodeId = $credential->pivot->node_id;
+            $data = json_decode($credential->data, true) ?? [];
+
+            $credentials[$nodeId] = [
+                'id' => $credential->id,
+                'type' => $credential->type,
+                'name' => $credential->name,
+                'data' => $data,
+            ];
+
+            $credential->update(['last_used_at' => now()]);
+        }
+
+        return $credentials;
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Workspace extends Model
 {
@@ -150,5 +151,21 @@ class Workspace extends Model
     public function creditTransactions(): HasMany
     {
         return $this->hasMany(CreditTransaction::class);
+    }
+
+    /**
+     * @return HasOne<WorkspaceSetting, $this>
+     */
+    public function workspaceSettings(): HasOne
+    {
+        return $this->hasOne(WorkspaceSetting::class);
+    }
+
+    /**
+     * @return HasMany<LogStreamingConfig, $this>
+     */
+    public function logStreamingConfigs(): HasMany
+    {
+        return $this->hasMany(LogStreamingConfig::class);
     }
 }

@@ -3,8 +3,8 @@
 use App\Enums\Permission;
 use App\Enums\Role;
 
-it('has 68 permissions', function () {
-    expect(Permission::cases())->toHaveCount(68);
+it('has 83 permissions', function () {
+    expect(Permission::cases())->toHaveCount(83);
 });
 
 it('groups permissions by resource', function () {

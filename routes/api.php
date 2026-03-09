@@ -28,19 +28,29 @@ use App\Http\Controllers\Api\V1\CredentialController;
 use App\Http\Controllers\Api\V1\CredentialTypeController;
 use App\Http\Controllers\Api\V1\CreditController;
 use App\Http\Controllers\Api\V1\ExecutionController;
+use App\Http\Controllers\Api\V1\GitSyncController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\JobCallbackController;
+use App\Http\Controllers\Api\V1\LogStreamingConfigController;
 use App\Http\Controllers\Api\V1\NodeCategoryController;
 use App\Http\Controllers\Api\V1\NodeController;
+use App\Http\Controllers\Api\V1\OAuthCredentialController;
+use App\Http\Controllers\Api\V1\PinnedNodeDataController;
+use App\Http\Controllers\Api\V1\SseController;
+use App\Http\Controllers\Api\V1\StickyNoteController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\VariableController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Controllers\Api\V1\WebhookReceiverController;
 use App\Http\Controllers\Api\V1\WorkflowController;
+use App\Http\Controllers\Api\V1\WorkflowImportExportController;
+use App\Http\Controllers\Api\V1\WorkflowShareController;
+use App\Http\Controllers\Api\V1\WorkflowTemplateController;
 use App\Http\Controllers\Api\V1\WorkflowVersionController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
 use App\Http\Controllers\Api\V1\WorkspaceMemberController;
+use App\Http\Controllers\Api\V1\WorkspaceSettingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->as('v1.')->group(function () {
@@ -62,6 +72,12 @@ Route::prefix('v1')->as('v1.')->group(function () {
 
     Route::match(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], 'webhook/{uuid}', [WebhookReceiverController::class, 'handle'])
         ->name('webhook.receive');
+
+    // ── Shared Workflows (public viewing) ───────────────────────
+    Route::get('shared/{token}', [WorkflowShareController::class, 'viewPublic'])->name('shared.view');
+
+    // ── OAuth2 Callback (no auth — redirect from provider) ──────
+    Route::get('oauth/callback', [OAuthCredentialController::class, 'callback'])->name('oauth.callback');
 
     /*
     |----------------------------------------------------------------------
@@ -181,6 +197,8 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('/', [WorkflowController::class, 'index'])->name('index');
                     Route::post('/', [WorkflowController::class, 'store'])->name('store');
 
+                    Route::post('import', [WorkflowImportExportController::class, 'import'])->name('import');
+
                     Route::prefix('{workflow}')->group(function () {
                         Route::get('/', [WorkflowController::class, 'show'])->name('show');
                         Route::put('/', [WorkflowController::class, 'update'])->name('update');
@@ -191,6 +209,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
                         Route::post('execute', [ExecutionController::class, 'store'])->name('execute');
                         Route::get('executions', [ExecutionController::class, 'workflowExecutions'])->name('executions.index');
                         Route::post('webhook', [WebhookController::class, 'store'])->name('webhook.store');
+                        Route::get('export', [WorkflowImportExportController::class, 'export'])->name('export');
 
                         // ── Versions ─────────────────────────────────
 
@@ -201,6 +220,33 @@ Route::prefix('v1')->as('v1.')->group(function () {
                             Route::get('{version}', [WorkflowVersionController::class, 'show'])->name('show');
                             Route::post('{version}/publish', [WorkflowVersionController::class, 'publish'])->name('publish');
                             Route::post('{version}/rollback', [WorkflowVersionController::class, 'rollback'])->name('rollback');
+                        });
+
+                        // ── Shares ───────────────────────────────────
+
+                        Route::prefix('shares')->as('shares.')->group(function () {
+                            Route::get('/', [WorkflowShareController::class, 'index'])->name('index');
+                            Route::post('/', [WorkflowShareController::class, 'store'])->name('store');
+                            Route::put('{share}', [WorkflowShareController::class, 'update'])->name('update');
+                            Route::delete('{share}', [WorkflowShareController::class, 'destroy'])->name('destroy');
+                        });
+
+                        // ── Sticky Notes ─────────────────────────────
+
+                        Route::prefix('sticky-notes')->as('sticky-notes.')->group(function () {
+                            Route::get('/', [StickyNoteController::class, 'index'])->name('index');
+                            Route::post('/', [StickyNoteController::class, 'store'])->name('store');
+                            Route::put('{stickyNote}', [StickyNoteController::class, 'update'])->name('update');
+                            Route::delete('{stickyNote}', [StickyNoteController::class, 'destroy'])->name('destroy');
+                        });
+
+                        // ── Pinned Node Data ─────────────────────────
+
+                        Route::prefix('pinned-data')->as('pinned-data.')->group(function () {
+                            Route::get('/', [PinnedNodeDataController::class, 'index'])->name('index');
+                            Route::post('/', [PinnedNodeDataController::class, 'store'])->name('store');
+                            Route::post('{pinnedNodeData}/toggle', [PinnedNodeDataController::class, 'toggle'])->name('toggle');
+                            Route::delete('{pinnedNodeData}', [PinnedNodeDataController::class, 'destroy'])->name('destroy');
                         });
                     });
                 });
@@ -220,6 +266,8 @@ Route::prefix('v1')->as('v1.')->group(function () {
 
                 Route::prefix('executions')->as('executions.')->group(function () {
                     Route::get('stats', [ExecutionController::class, 'stats'])->name('stats');
+                    Route::get('compare', [ExecutionController::class, 'compare'])->name('compare');
+                    Route::delete('bulk', [ExecutionController::class, 'bulkDestroy'])->name('bulk-destroy');
                     Route::get('/', [ExecutionController::class, 'index'])->name('index');
                     Route::get('{execution}', [ExecutionController::class, 'show'])->name('show');
                     Route::delete('{execution}', [ExecutionController::class, 'destroy'])->name('destroy');
@@ -227,6 +275,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('{execution}/logs', [ExecutionController::class, 'logs'])->name('logs');
                     Route::post('{execution}/retry', [ExecutionController::class, 'retry'])->name('retry');
                     Route::post('{execution}/cancel', [ExecutionController::class, 'cancel'])->name('cancel');
+                    Route::get('{execution}/stream', [SseController::class, 'stream'])->name('stream');
                 });
 
                 // ── Webhooks ─────────────────────────────────────────
@@ -264,6 +313,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
 
                 Route::prefix('activity-logs')->as('activity-logs.')->group(function () {
                     Route::get('/', [ActivityLogController::class, 'index'])->name('index');
+                    Route::get('export', [ActivityLogController::class, 'export'])->name('export');
                     Route::get('{activityLog}', [ActivityLogController::class, 'show'])->name('show');
                 });
 
@@ -272,6 +322,42 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('balance', [CreditController::class, 'balance'])->name('balance');
                     Route::get('transactions', [CreditController::class, 'transactions'])->name('transactions');
                 });
+
+                // ── Workspace Settings ──────────────────────────────
+
+                Route::prefix('settings')->as('settings.')->group(function () {
+                    Route::get('/', [WorkspaceSettingController::class, 'show'])->name('show');
+                    Route::put('/', [WorkspaceSettingController::class, 'update'])->name('update');
+                });
+
+                // ── OAuth2 Credential Flow ──────────────────────────
+
+                Route::post('oauth/initiate', [OAuthCredentialController::class, 'initiate'])->name('oauth.initiate');
+
+                // ── Log Streaming ───────────────────────────────────
+
+                Route::prefix('log-streaming')->as('log-streaming.')->group(function () {
+                    Route::get('/', [LogStreamingConfigController::class, 'index'])->name('index');
+                    Route::post('/', [LogStreamingConfigController::class, 'store'])->name('store');
+                    Route::get('{logStreamingConfig}', [LogStreamingConfigController::class, 'show'])->name('show');
+                    Route::put('{logStreamingConfig}', [LogStreamingConfigController::class, 'update'])->name('update');
+                    Route::delete('{logStreamingConfig}', [LogStreamingConfigController::class, 'destroy'])->name('destroy');
+                });
+
+                // ── Git Sync ────────────────────────────────────────
+
+                Route::prefix('git-sync')->as('git-sync.')->group(function () {
+                    Route::get('status', [GitSyncController::class, 'status'])->name('status');
+                    Route::post('export', [GitSyncController::class, 'export'])->name('export');
+                });
+
+                // ── Shared Workflow Clone ────────────────────────────
+
+                Route::post('shared/{token}/clone', [WorkflowShareController::class, 'clonePublic'])->name('shared.clone');
+
+                // ── Templates (use within workspace) ────────────────
+
+                Route::post('templates/{workflowTemplate}/use', [WorkflowTemplateController::class, 'use'])->name('templates.use');
             });
 
         /*
@@ -301,6 +387,13 @@ Route::prefix('v1')->as('v1.')->group(function () {
         Route::prefix('credential-types')->as('credential-types.')->group(function () {
             Route::get('/', [CredentialTypeController::class, 'index'])->name('index');
             Route::get('{credentialType}', [CredentialTypeController::class, 'show'])->name('show');
+        });
+
+        // ── Workflow Templates (global catalog) ─────────────────────
+
+        Route::prefix('templates')->as('templates.')->group(function () {
+            Route::get('/', [WorkflowTemplateController::class, 'index'])->name('index');
+            Route::get('{workflowTemplate}', [WorkflowTemplateController::class, 'show'])->name('show');
         });
     });
 });

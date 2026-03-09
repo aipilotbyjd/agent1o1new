@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ExecutionMode;
 use App\Exceptions\ApiException;
+use App\Models\Execution;
 use App\Models\Webhook;
 use App\Models\Workflow;
 use App\Models\Workspace;
@@ -129,11 +130,19 @@ class WebhookService
                 ExecutionMode::Webhook,
             );
 
+            if ($webhook->response_mode === 'wait') {
+                $execution = $this->waitForCompletion($execution, $webhook->response_timeout ?? 30);
+            }
+
             return [
                 'execution_id' => $execution->id,
-                'status' => 'triggered',
+                'status' => $webhook->response_mode === 'wait' ? $execution->status->value : 'triggered',
                 'response_status' => $webhook->response_status,
-                'response_body' => $webhook->response_body ?? ['success' => true, 'execution_id' => $execution->id],
+                'response_body' => $webhook->response_body ?? [
+                    'success' => $execution->status === \App\Enums\ExecutionStatus::Completed,
+                    'execution_id' => $execution->id,
+                    'result' => $webhook->response_mode === 'wait' ? $execution->result_data : null,
+                ],
             ];
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Webhook trigger failed: '.$e->getMessage(), [
@@ -209,5 +218,26 @@ class WebhookService
         $actualValue = $normalizedHeaders[$headerName] ?? '';
 
         return hash_equals($expectedValue, $actualValue);
+    }
+
+    private function waitForCompletion(Execution $execution, int $timeoutSeconds): Execution
+    {
+        $deadline = now()->addSeconds($timeoutSeconds);
+
+        while (now()->lt($deadline)) {
+            $execution->refresh();
+
+            if (in_array($execution->status, [
+                \App\Enums\ExecutionStatus::Completed,
+                \App\Enums\ExecutionStatus::Failed,
+                \App\Enums\ExecutionStatus::Cancelled,
+            ])) {
+                return $execution;
+            }
+
+            usleep(500000); // 500ms
+        }
+
+        return $execution;
     }
 }

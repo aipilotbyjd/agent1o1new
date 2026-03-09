@@ -27,6 +27,11 @@ class Workflow extends Model
         'execution_count',
         'last_executed_at',
         'success_rate',
+        'error_workflow_id',
+        'trigger_type',
+        'cron_expression',
+        'next_run_at',
+        'last_cron_run_at',
     ];
 
     protected function casts(): array
@@ -37,6 +42,8 @@ class Workflow extends Model
             'execution_count' => 'integer',
             'last_executed_at' => 'datetime',
             'success_rate' => 'decimal:2',
+            'next_run_at' => 'datetime',
+            'last_cron_run_at' => 'datetime',
         ];
     }
 
@@ -104,6 +111,38 @@ class Workflow extends Model
     public function webhooks(): HasMany
     {
         return $this->hasMany(Webhook::class);
+    }
+
+    /**
+     * @return HasMany<StickyNote, $this>
+     */
+    public function stickyNotes(): HasMany
+    {
+        return $this->hasMany(StickyNote::class);
+    }
+
+    /**
+     * @return HasMany<WorkflowShare, $this>
+     */
+    public function shares(): HasMany
+    {
+        return $this->hasMany(WorkflowShare::class);
+    }
+
+    /**
+     * @return HasMany<PinnedNodeData, $this>
+     */
+    public function pinnedData(): HasMany
+    {
+        return $this->hasMany(PinnedNodeData::class);
+    }
+
+    /**
+     * @return BelongsTo<self, $this>
+     */
+    public function errorWorkflow(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'error_workflow_id');
     }
 
     public function activate(): void

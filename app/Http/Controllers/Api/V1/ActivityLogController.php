@@ -73,4 +73,37 @@ class ActivityLogController extends Controller
             new ActivityLogResource($activityLog),
         );
     }
+
+    /**
+     * Export activity logs as JSON.
+     */
+    public function export(Request $request, Workspace $workspace): JsonResponse
+    {
+        $this->can(Permission::AuditLogExport);
+
+        $query = $workspace->activityLogs()->with('user');
+
+        if ($request->filled('from')) {
+            $query->where('created_at', '>=', $request->input('from'));
+        }
+
+        if ($request->filled('to')) {
+            $query->where('created_at', '<=', $request->input('to'));
+        }
+
+        if ($request->filled('action')) {
+            $query->where('action', $request->input('action'));
+        }
+
+        $logs = $query->orderBy('created_at', 'desc')->limit(10000)->get();
+
+        return $this->successResponse(
+            'Activity logs exported successfully.',
+            [
+                'exported_at' => now()->toIso8601String(),
+                'total' => $logs->count(),
+                'logs' => ActivityLogResource::collection($logs),
+            ],
+        );
+    }
 }
