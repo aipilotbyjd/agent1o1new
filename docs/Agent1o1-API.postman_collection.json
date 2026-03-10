@@ -109,6 +109,16 @@
       "key": "share_token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "oauth_state",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "oauth_code",
+      "value": "",
+      "type": "string"
     }
   ],
   "auth": {
@@ -2233,6 +2243,78 @@
                 "{{workspace_id}}",
                 "credentials",
                 "{{credential_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "OAuth: Initiate",
+          "description": "Start an OAuth2 authorization flow for a credential type. Returns an authorization_url — open it in a browser to authorize. After the user authorizes, the provider redirects to the callback endpoint.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"credential_type\": \"slack\",\n    \"credential_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/oauth/initiate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{{workspace_id}}",
+                "oauth",
+                "initiate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "OAuth: Callback",
+          "description": "Handle the OAuth2 callback after the user authorizes with the provider. Paste the 'code' and 'state' values from the provider's redirect URL. This exchanges the code for tokens and creates/updates the credential.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/oauth/callback?state={{oauth_state}}&code={{oauth_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "oauth",
+                "callback"
+              ],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "{{oauth_state}}",
+                  "description": "The state_token returned from the initiate endpoint"
+                },
+                {
+                  "key": "code",
+                  "value": "{{oauth_code}}",
+                  "description": "The authorization code from the provider's redirect"
+                }
               ]
             }
           }
