@@ -18,6 +18,7 @@ class CredentialType extends Model
         'color',
         'fields_schema',
         'test_config',
+        'oauth_config',
         'docs_url',
     ];
 
@@ -26,6 +27,7 @@ class CredentialType extends Model
         return [
             'fields_schema' => 'array',
             'test_config' => 'array',
+            'oauth_config' => 'array',
         ];
     }
 }
