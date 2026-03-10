@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OAuthCredentialState extends Model
 {
+    protected $table = 'oauth_credential_states';
+
     protected $fillable = [
         'workspace_id',
         'user_id',
