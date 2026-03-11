@@ -118,8 +118,8 @@ Route::prefix('v1')->as('v1.')->group(function () {
     */
 
     Route::prefix('internal')->as('internal.')->middleware('engine.signature')->group(function () {
-        Route::get('credentials/{executionId}/{nodeId}', [InternalEngineController::class, 'credential'])->name('credentials');
-        Route::get('workflows/{workflowId}/definition', [InternalEngineController::class, 'workflowDefinition'])->name('workflow-definition');
+        Route::post('credentials', [InternalEngineController::class, 'credential'])->name('credentials');
+        Route::post('workflows/definition', [InternalEngineController::class, 'workflowDefinition'])->name('workflow-definition');
     });
 
     /*

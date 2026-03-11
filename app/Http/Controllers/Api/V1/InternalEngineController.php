@@ -23,8 +23,16 @@ class InternalEngineController extends Controller
      * The engine calls this just-in-time when a node needs credentials,
      * instead of receiving them pre-embedded in the Redis job payload.
      */
-    public function credential(Request $request, int $executionId, string $nodeId): JsonResponse
+    public function credential(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'execution_id' => 'required|integer',
+            'node_id' => 'required|string',
+        ]);
+
+        $executionId = $validated['execution_id'];
+        $nodeId = $validated['node_id'];
+
         $execution = Execution::find($executionId);
 
         if (! $execution) {
@@ -69,20 +77,26 @@ class InternalEngineController extends Controller
      * The engine caches this by version_hash (immutable) to avoid
      * embedding full workflow definitions in every Redis message.
      */
-    public function workflowDefinition(Request $request, int $workflowId): JsonResponse
+    public function workflowDefinition(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'workflow_id' => 'required|integer',
+            'version_hash' => 'nullable|string',
+        ]);
+
+        $workflowId = $validated['workflow_id'];
+        $wfHash = $validated['version_hash'] ?? null;
+
         $workflow = Workflow::find($workflowId);
 
         if (! $workflow) {
             return response()->json(['success' => false, 'error' => 'Workflow not found'], 404);
         }
 
-        $versionHash = $request->query('version_hash');
-
-        if ($versionHash) {
+        if ($wfHash) {
             $version = WorkflowVersion::query()
                 ->where('workflow_id', $workflowId)
-                ->where('version_hash', $versionHash)
+                ->where('version_hash', $wfHash)
                 ->first();
         } else {
             $version = $workflow->currentVersion;
