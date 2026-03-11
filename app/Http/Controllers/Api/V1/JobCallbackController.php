@@ -312,10 +312,15 @@ class JobCallbackController extends Controller
     private function publishSseRawEvent(int $executionId, array $payload): void
     {
         $streamKey = "execution:{$executionId}:events";
+        $pubsubChannel = "linkflow:execution:{$executionId}:live";
 
         try {
+            // Write to Stream for reliable catch-up
             Redis::connection()->client()->xadd($streamKey, '*', ['payload' => json_encode($payload)]);
             Redis::connection()->client()->expire($streamKey, 300);
+
+            // Also publish to Pub/Sub for instant push
+            Redis::connection()->client()->publish($pubsubChannel, json_encode($payload));
         } catch (\Throwable) {
             // SSE publishing is best-effort — don't fail the callback
         }

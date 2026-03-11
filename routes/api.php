@@ -27,8 +27,10 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CredentialController;
 use App\Http\Controllers\Api\V1\CredentialTypeController;
 use App\Http\Controllers\Api\V1\CreditController;
+use App\Http\Controllers\Api\V1\EngineDashboardController;
 use App\Http\Controllers\Api\V1\ExecutionController;
 use App\Http\Controllers\Api\V1\GitSyncController;
+use App\Http\Controllers\Api\V1\InternalEngineController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\JobCallbackController;
 use App\Http\Controllers\Api\V1\LogStreamingConfigController;
@@ -105,6 +107,19 @@ Route::prefix('v1')->as('v1.')->group(function () {
     Route::prefix('jobs')->as('jobs.')->middleware('engine.signature')->group(function () {
         Route::post('callback', [JobCallbackController::class, 'handle'])->name('callback');
         Route::post('progress', [JobCallbackController::class, 'progress'])->name('progress');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Internal Engine API — HMAC-signed requests from Go engine
+    |----------------------------------------------------------------------
+    | Used for just-in-time credential fetching and workflow definition
+    | caching. Keeps secrets out of Redis and reduces message sizes.
+    */
+
+    Route::prefix('internal')->as('internal.')->middleware('engine.signature')->group(function () {
+        Route::get('credentials/{executionId}/{nodeId}', [InternalEngineController::class, 'credential'])->name('credentials');
+        Route::get('workflows/{workflowId}/definition', [InternalEngineController::class, 'workflowDefinition'])->name('workflow-definition');
     });
 
     /*
@@ -268,6 +283,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('stats', [ExecutionController::class, 'stats'])->name('stats');
                     Route::get('compare', [ExecutionController::class, 'compare'])->name('compare');
                     Route::delete('bulk', [ExecutionController::class, 'bulkDestroy'])->name('bulk-destroy');
+                    Route::get('stream-all', [SseController::class, 'streamWorkspace'])->name('stream-all');
                     Route::get('/', [ExecutionController::class, 'index'])->name('index');
                     Route::get('{execution}', [ExecutionController::class, 'show'])->name('show');
                     Route::delete('{execution}', [ExecutionController::class, 'destroy'])->name('destroy');
@@ -276,6 +292,8 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::post('{execution}/retry', [ExecutionController::class, 'retry'])->name('retry');
                     Route::post('{execution}/cancel', [ExecutionController::class, 'cancel'])->name('cancel');
                     Route::get('{execution}/stream', [SseController::class, 'stream'])->name('stream');
+                    Route::post('{execution}/pause-engine', [EngineDashboardController::class, 'pauseExecution'])->name('pause-engine');
+                    Route::post('{execution}/resume-engine', [EngineDashboardController::class, 'resumeExecution'])->name('resume-engine');
                 });
 
                 // ── Webhooks ─────────────────────────────────────────
@@ -342,6 +360,17 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('{logStreamingConfig}', [LogStreamingConfigController::class, 'show'])->name('show');
                     Route::put('{logStreamingConfig}', [LogStreamingConfigController::class, 'update'])->name('update');
                     Route::delete('{logStreamingConfig}', [LogStreamingConfigController::class, 'destroy'])->name('destroy');
+                });
+
+                // ── Engine Dashboard (Health, DLQ, Cache) ──────────
+
+                Route::prefix('engine')->as('engine.')->group(function () {
+                    Route::get('health', [EngineDashboardController::class, 'health'])->name('health');
+                    Route::get('partitions', [EngineDashboardController::class, 'partitions'])->name('partitions');
+                    Route::get('dlq', [EngineDashboardController::class, 'dlq'])->name('dlq');
+                    Route::post('dlq/{messageId}/replay', [EngineDashboardController::class, 'dlqReplay'])->name('dlq.replay');
+                    Route::get('cache', [EngineDashboardController::class, 'cache'])->name('cache');
+                    Route::post('cache/invalidate', [EngineDashboardController::class, 'cacheInvalidate'])->name('cache.invalidate');
                 });
 
                 // ── Git Sync ────────────────────────────────────────
