@@ -193,8 +193,8 @@ class ExecutionService
             ]);
 
             $streamKey = "linkflow:jobs:cancel:{$jobStatus->partition}";
-            \Illuminate\Support\Facades\Redis::connection()->client()->xadd($streamKey, '*', ['payload' => $payload]);
-            \Illuminate\Support\Facades\Redis::connection()->client()->expire($streamKey, 300);
+            \Illuminate\Support\Facades\Redis::connection('engine')->client()->xadd($streamKey, '*', ['payload' => $payload]);
+            \Illuminate\Support\Facades\Redis::connection('engine')->client()->expire($streamKey, 300);
         } catch (\Throwable) {
             // Cancel signal is best-effort
         }

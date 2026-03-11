@@ -44,13 +44,13 @@ class ExecuteWorkflowJob implements ShouldQueue
         $streamKey = "linkflow:jobs:partition:{$partition}";
         $maxLen = (int) config('services.engine.stream_maxlen', 100000);
 
-        Redis::connection()->client()->xadd(
+        Redis::connection('engine')->client()->xadd(
             $streamKey,
             '*',
             ['payload' => json_encode($message)],
         );
 
-        Redis::connection()->client()->xtrim(
+        Redis::connection('engine')->client()->xtrim(
             $streamKey,
             'MAXLEN',
             '~',
@@ -112,8 +112,8 @@ class ExecuteWorkflowJob implements ShouldQueue
                 'settings' => $version->settings ?? [],
             ],
             'trigger_data' => $execution->trigger_data ?? [],
-            'credentials' => $this->resolveCredentials($workflow, $version),
-            'variables' => $variables,
+            'credentials' => $this->resolveCredentials($workflow, $version) ?: (object) [],
+            'variables' => $variables ?: (object) [],
             'callback_url' => "{$apiUrl}/api/v1/jobs/callback",
             'progress_url' => "{$apiUrl}/api/v1/jobs/progress",
             'deterministic' => [
