@@ -17,6 +17,7 @@ class ExecutionNode extends Model
     protected $fillable = [
         'execution_id',
         'node_id',
+        'node_run_key',
         'node_type',
         'node_name',
         'status',
@@ -27,6 +28,8 @@ class ExecutionNode extends Model
         'output_data',
         'error',
         'sequence',
+        'loop_index',
+        'parent_frame',
     ];
 
     protected function casts(): array

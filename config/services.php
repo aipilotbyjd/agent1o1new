@@ -35,15 +35,6 @@ return [
         ],
     ],
 
-    'engine' => [
-        'secret' => env('ENGINE_CALLBACK_SECRET', ''),
-        'callback_ttl' => env('ENGINE_CALLBACK_TTL', 300),
-        'api_url' => env('ENGINE_API_URL', 'http://linkflow-api:8000'),
-        'engine_http_url' => env('ENGINE_HTTP_URL', 'http://localhost:8080'),
-        'partition_count' => env('ENGINE_PARTITION_COUNT', 16),
-        'stream_maxlen' => env('ENGINE_STREAM_MAXLEN', 100000),
-    ],
-
     /*
     |--------------------------------------------------------------------------
     | OAuth2 App Credentials (per provider)

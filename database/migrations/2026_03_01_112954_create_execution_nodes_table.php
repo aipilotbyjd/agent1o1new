@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('execution_id')->constrained('executions')->cascadeOnDelete();
             $table->string('node_id', 100);
+            $table->string('node_run_key', 150);
             $table->string('node_type', 100);
             $table->string('node_name')->nullable();
             $table->enum('status', ['pending', 'running', 'completed', 'failed', 'skipped']);
@@ -22,8 +23,11 @@ return new class extends Migration
             $table->json('output_data')->nullable();
             $table->json('error')->nullable();
             $table->unsignedInteger('sequence');
+            $table->unsignedInteger('loop_index')->nullable();
+            $table->string('parent_frame', 100)->nullable();
             $table->timestamp('created_at')->useCurrent();
 
+            $table->unique(['execution_id', 'node_run_key'], 'exec_node_run_unique');
             $table->index(['execution_id', 'sequence']);
         });
     }

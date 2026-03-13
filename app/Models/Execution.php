@@ -37,6 +37,8 @@ class Execution extends Model
         'is_deterministic_replay',
         'ip_address',
         'user_agent',
+        'node_count',
+        'completed_node_count',
     ];
 
     protected function casts(): array

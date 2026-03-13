@@ -32,6 +32,8 @@ return new class extends Migration
             $table->boolean('is_deterministic_replay')->default(false);
             $table->string('ip_address', 45)->nullable();
             $table->string('user_agent', 500)->nullable();
+            $table->unsignedInteger('node_count')->default(0);
+            $table->unsignedInteger('completed_node_count')->default(0);
             $table->timestamps();
 
             $table->index(['workspace_id', 'status']);
