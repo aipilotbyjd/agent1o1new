@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Engine\Nodes;
+namespace App\Engine\Nodes\Core;
 
 use App\Engine\Contracts\NodeHandler;
 use App\Engine\NodeResult;
@@ -47,9 +47,6 @@ class TransformNode implements NodeHandler
     }
 
     /**
-     * Apply field mapping. Each key in the mapping config defines an output field,
-     * and its value is resolved from inputData (expressions are pre-resolved by the engine).
-     *
      * @return array<string, mixed>
      */
     private function applyMapping(NodePayload $payload): array

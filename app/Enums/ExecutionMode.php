@@ -10,4 +10,5 @@ enum ExecutionMode: string
     case Retry = 'retry';
     case Scheduled = 'scheduled';
     case Polling = 'polling';
+    case SubWorkflow = 'sub_workflow';
 }

@@ -1,6 +1,6 @@
 <?php
 
-use App\Engine\Nodes\TriggerNode;
+use App\Engine\Nodes\Core\TriggerNode;
 use App\Engine\Runners\NodePayload;
 use App\Enums\ExecutionMode;
 use App\Enums\ExecutionNodeStatus;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Engine\Nodes;
+namespace App\Engine\Nodes\Flow;
 
 use App\Engine\Contracts\NodeHandler;
 use App\Engine\NodeResult;
