@@ -2,10 +2,9 @@
 
 namespace App\Engine\Runners;
 
-use App\Engine\Contracts\NodeHandler;
 use App\Engine\Data\ExpressionParser;
-use App\Engine\Enums\NodeType;
 use App\Engine\Exceptions\NodeFailedException;
+use App\Engine\NodeRegistry;
 use App\Engine\NodeResult;
 use App\Engine\RunContext;
 use App\Engine\WorkflowGraph;
@@ -25,13 +24,15 @@ class SyncRunner
      */
     public function run(string $nodeId, WorkflowGraph $graph, RunContext $context): NodeResult
     {
-        $nodeType = $graph->getNodeType($nodeId);
+        $node = $graph->getNode($nodeId);
+        $type = $node['type'] ?? '';
 
-        if ($nodeType === null) {
-            return NodeResult::failed("Unknown node type for node [{$nodeId}].", 'UNKNOWN_TYPE');
+        $handler = NodeRegistry::handler($type);
+
+        if ($handler === null) {
+            return NodeResult::failed("Unknown node type [{$type}] for node [{$nodeId}].", 'UNKNOWN_TYPE');
         }
 
-        $handler = $this->resolveHandler($nodeType);
         $payload = $this->buildPayload($nodeId, $graph, $context);
 
         try {
@@ -87,6 +88,12 @@ class SyncRunner
             ? $this->expressionParser->resolveConfig($compiledConfig, $expressionContext)
             : ($node['data'] ?? $node['config'] ?? []);
 
+        // Inject operation for app nodes (e.g., "google_sheets.append_row" → operation = "append_row")
+        $operation = NodeRegistry::operation($node['type'] ?? '');
+        if ($operation !== null && ! isset($resolvedConfig['operation'])) {
+            $resolvedConfig['operation'] = $operation;
+        }
+
         // Gather input data from predecessors
         $inputData = $context->gatherInputData($nodeId);
 
@@ -104,12 +111,5 @@ class SyncRunner
             ],
             nodeRunKey: $nodeId,
         );
-    }
-
-    private function resolveHandler(NodeType $nodeType): NodeHandler
-    {
-        $handlerClass = $nodeType->handlerClass();
-
-        return app($handlerClass);
     }
 }

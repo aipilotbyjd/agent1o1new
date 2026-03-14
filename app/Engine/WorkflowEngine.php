@@ -4,6 +4,7 @@ namespace App\Engine;
 
 use App\Engine\Data\ExpressionParser;
 use App\Engine\Data\OutputBuffer;
+use App\Engine\Enums\NodeType;
 use App\Engine\Exceptions\NodeFailedException;
 use App\Engine\Persistence\BatchWriter;
 use App\Engine\Runners\SyncRunner;
@@ -239,10 +240,17 @@ class WorkflowEngine
         $blocking = [];
 
         foreach ($nodeIds as $nodeId) {
-            $nodeType = $graph->getNodeType($nodeId);
+            $node = $graph->getNode($nodeId);
+            $type = $node['type'] ?? '';
+            $nodeType = NodeType::tryFrom($type);
 
             if ($nodeType === null) {
-                $sync[] = $nodeId;
+                // App nodes (google_sheets.*, slack.*, etc.) always do I/O
+                if (NodeRegistry::isAppNode($type)) {
+                    $async[] = $nodeId;
+                } else {
+                    $sync[] = $nodeId;
+                }
 
                 continue;
             }
