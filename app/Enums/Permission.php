@@ -71,6 +71,12 @@ enum Permission: string
     case WebhookUpdate = 'webhook.update';
     case WebhookDelete = 'webhook.delete';
 
+    // ── Polling Triggers ────────────────────────────────────
+    case PollingTriggerView = 'polling-trigger.view';
+    case PollingTriggerCreate = 'polling-trigger.create';
+    case PollingTriggerUpdate = 'polling-trigger.update';
+    case PollingTriggerDelete = 'polling-trigger.delete';
+
     // ── Tags ─────────────────────────────────────────────────
     case TagView = 'tag.view';
     case TagCreate = 'tag.create';

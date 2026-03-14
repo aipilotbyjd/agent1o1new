@@ -114,6 +114,14 @@ class Workflow extends Model
     }
 
     /**
+     * @return HasMany<PollingTrigger, $this>
+     */
+    public function pollingTriggers(): HasMany
+    {
+        return $this->hasMany(PollingTrigger::class);
+    }
+
+    /**
      * @return HasMany<StickyNote, $this>
      */
     public function stickyNotes(): HasMany

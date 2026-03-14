@@ -13,4 +13,5 @@ Schedule::command('billing:expire-credit-packs')->dailyAt('00:10');
 Schedule::command('billing:reset-monthly-credits')->daily();
 
 Schedule::command('workflows:schedule-cron')->everyMinute();
+Schedule::command('workflows:poll')->everyMinute();
 Schedule::command('executions:prune')->dailyAt('02:00');

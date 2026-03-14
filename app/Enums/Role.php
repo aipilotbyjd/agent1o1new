@@ -82,6 +82,12 @@ enum Role: string
                 Permission::WebhookUpdate,
                 Permission::WebhookDelete,
 
+                // Polling Triggers
+                Permission::PollingTriggerView,
+                Permission::PollingTriggerCreate,
+                Permission::PollingTriggerUpdate,
+                Permission::PollingTriggerDelete,
+
                 // Tags
                 Permission::TagView,
                 Permission::TagCreate,
@@ -166,6 +172,11 @@ enum Role: string
                 Permission::WebhookCreate,
                 Permission::WebhookUpdate,
 
+                // Polling Triggers (no delete)
+                Permission::PollingTriggerView,
+                Permission::PollingTriggerCreate,
+                Permission::PollingTriggerUpdate,
+
                 // Tags (no delete)
                 Permission::TagView,
                 Permission::TagCreate,
@@ -204,6 +215,7 @@ enum Role: string
                 Permission::CredentialView,
                 Permission::ExecutionView,
                 Permission::WebhookView,
+                Permission::PollingTriggerView,
                 Permission::TagView,
                 Permission::VariableView,
                 Permission::EnvironmentView,

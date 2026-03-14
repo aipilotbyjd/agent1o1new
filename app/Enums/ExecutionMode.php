@@ -9,4 +9,5 @@ enum ExecutionMode: string
     case Schedule = 'schedule';
     case Retry = 'retry';
     case Scheduled = 'scheduled';
+    case Polling = 'polling';
 }

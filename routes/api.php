@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\V1\NodeCategoryController;
 use App\Http\Controllers\Api\V1\NodeController;
 use App\Http\Controllers\Api\V1\OAuthCredentialController;
 use App\Http\Controllers\Api\V1\PinnedNodeDataController;
+use App\Http\Controllers\Api\V1\PollingTriggerController;
 use App\Http\Controllers\Api\V1\SseController;
 use App\Http\Controllers\Api\V1\StickyNoteController;
 use App\Http\Controllers\Api\V1\TagController;
@@ -224,6 +225,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
                         Route::post('execute', [ExecutionController::class, 'store'])->name('execute');
                         Route::get('executions', [ExecutionController::class, 'workflowExecutions'])->name('executions.index');
                         Route::post('webhook', [WebhookController::class, 'store'])->name('webhook.store');
+                        Route::post('polling-trigger', [PollingTriggerController::class, 'store'])->name('polling-trigger.store');
                         Route::get('export', [WorkflowImportExportController::class, 'export'])->name('export');
 
                         // ── Versions ─────────────────────────────────
@@ -303,6 +305,15 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('{webhook}', [WebhookController::class, 'show'])->name('show');
                     Route::put('{webhook}', [WebhookController::class, 'update'])->name('update');
                     Route::delete('{webhook}', [WebhookController::class, 'destroy'])->name('destroy');
+                });
+
+                // ── Polling Triggers ─────────────────────────────────
+
+                Route::prefix('polling-triggers')->as('polling-triggers.')->group(function () {
+                    Route::get('/', [PollingTriggerController::class, 'index'])->name('index');
+                    Route::get('{pollingTrigger}', [PollingTriggerController::class, 'show'])->name('show');
+                    Route::put('{pollingTrigger}', [PollingTriggerController::class, 'update'])->name('update');
+                    Route::delete('{pollingTrigger}', [PollingTriggerController::class, 'destroy'])->name('destroy');
                 });
 
                 // ── Variables ────────────────────────────────────────

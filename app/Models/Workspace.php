@@ -98,6 +98,14 @@ class Workspace extends Model
     }
 
     /**
+     * @return HasMany<PollingTrigger, $this>
+     */
+    public function pollingTriggers(): HasMany
+    {
+        return $this->hasMany(PollingTrigger::class);
+    }
+
+    /**
      * @return HasMany<Variable, $this>
      */
     public function variables(): HasMany

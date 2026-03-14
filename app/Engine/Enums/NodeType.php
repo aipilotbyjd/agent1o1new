@@ -15,9 +15,6 @@ use App\Engine\Nodes\TriggerNode;
 enum NodeType: string
 {
     case Trigger = 'trigger';
-    case WebhookTrigger = 'webhook_trigger';
-    case CronTrigger = 'cron_trigger';
-    case ManualTrigger = 'manual_trigger';
     case HttpRequest = 'http_request';
     case Transform = 'transform';
     case Code = 'code';
@@ -37,7 +34,7 @@ enum NodeType: string
     public function handlerClass(): string
     {
         return match ($this) {
-            self::Trigger, self::WebhookTrigger, self::CronTrigger, self::ManualTrigger => TriggerNode::class,
+            self::Trigger => TriggerNode::class,
             self::HttpRequest => HttpRequestNode::class,
             self::Transform, self::Code => TransformNode::class,
             self::Condition, self::IfBranch, self::Switch => ConditionNode::class,
