@@ -892,6 +892,97 @@ class NodeSeeder extends Seeder
                     ],
                 ],
             ],
+
+            // ── Integrations (Apps) ───────────────────────────────────
+            [
+                'category' => 'data',
+                'type' => 'google_sheets.get_rows',
+                'name' => 'Google Sheets',
+                'description' => 'Read, append, or update rows in Google Sheets via OAuth2.',
+                'icon' => 'table-cells',
+                'color' => '#10B981',
+                'node_kind' => 'action',
+                'credential_type' => 'google_oauth2',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'operation' => ['type' => 'string', 'enum' => ['get_rows', 'append_row', 'update_row'], 'default' => 'get_rows'],
+                        'spreadsheet_id' => ['type' => 'string', 'description' => 'ID of the spreadsheet'],
+                        'range' => ['type' => 'string', 'default' => 'Sheet1'],
+                    ],
+                    'required' => ['operation', 'spreadsheet_id'],
+                ],
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'values' => ['type' => 'array', 'description' => 'Array of arrays containing cell values'],
+                    ],
+                ],
+                'output_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'rows' => ['type' => 'array'],
+                        'updated_rows' => ['type' => 'integer'],
+                    ],
+                ],
+            ],
+            [
+                'category' => 'storage',
+                'type' => 'google_drive.list_files',
+                'name' => 'Google Drive',
+                'description' => 'List, create folders, or upload files to Google Drive.',
+                'icon' => 'folder',
+                'color' => '#0EA5E9',
+                'node_kind' => 'action',
+                'credential_type' => 'google_oauth2',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'operation' => ['type' => 'string', 'enum' => ['list_files', 'create_folder', 'upload_file'], 'default' => 'list_files'],
+                        'folder_id' => ['type' => 'string', 'description' => 'Folder ID (optional)'],
+                    ],
+                    'required' => ['operation'],
+                ],
+            ],
+            [
+                'category' => 'communication',
+                'type' => 'gmail.send_email',
+                'name' => 'Gmail',
+                'description' => 'Send emails, add labels, or list messages via Gmail.',
+                'icon' => 'envelope',
+                'color' => '#EC4899',
+                'node_kind' => 'action',
+                'credential_type' => 'google_oauth2',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'operation' => ['type' => 'string', 'enum' => ['send_email', 'add_label', 'list_messages'], 'default' => 'send_email'],
+                        'to' => ['type' => 'string', 'description' => 'Recipient email address'],
+                        'subject' => ['type' => 'string', 'description' => 'Email subject'],
+                        'body' => ['type' => 'string', 'description' => 'Email HTML body'],
+                    ],
+                    'required' => ['operation'],
+                ],
+            ],
+            [
+                'category' => 'utility',
+                'type' => 'google_calendar.list_events',
+                'name' => 'Google Calendar',
+                'description' => 'List, create, update, or delete calendar events.',
+                'icon' => 'calendar',
+                'color' => '#6B7280',
+                'node_kind' => 'action',
+                'credential_type' => 'google_oauth2',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'operation' => ['type' => 'string', 'enum' => ['list_events', 'create_event', 'update_event', 'delete_event'], 'default' => 'list_events'],
+                        'calendar_id' => ['type' => 'string', 'default' => 'primary'],
+                        'summary' => ['type' => 'string'],
+                    ],
+                    'required' => ['operation', 'calendar_id'],
+                ],
+            ],
         ];
 
         foreach ($nodes as $nodeData) {
