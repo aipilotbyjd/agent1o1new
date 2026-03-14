@@ -98,6 +98,9 @@ return [
 
     'waits' => [
         'redis:default' => 60,
+        'redis:workflows-high' => 30,
+        'redis:workflows-default' => 60,
+        'redis:notifications' => 30,
     ],
 
     /*
@@ -197,7 +200,35 @@ return [
     */
 
     'defaults' => [
-        'supervisor-1' => [
+        'supervisor-workflows' => [
+            'connection' => 'redis',
+            'queue' => ['workflows-high', 'workflows-default'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 2,
+            'timeout' => 120,
+            'nice' => 0,
+        ],
+
+        'supervisor-notifications' => [
+            'connection' => 'redis',
+            'queue' => ['notifications'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 30,
+            'nice' => 0,
+        ],
+
+        'supervisor-default' => [
             'connection' => 'redis',
             'queue' => ['default'],
             'balance' => 'auto',
@@ -206,7 +237,7 @@ return [
             'maxTime' => 0,
             'maxJobs' => 0,
             'memory' => 128,
-            'tries' => 1,
+            'tries' => 3,
             'timeout' => 60,
             'nice' => 0,
         ],
@@ -214,16 +245,36 @@ return [
 
     'environments' => [
         'production' => [
-            'supervisor-1' => [
+            'supervisor-workflows' => [
                 'maxProcesses' => 10,
+                'balanceMaxShift' => 2,
+                'balanceCooldown' => 3,
+            ],
+
+            'supervisor-notifications' => [
+                'maxProcesses' => 5,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+
+            'supervisor-default' => [
+                'maxProcesses' => 3,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
         ],
 
         'local' => [
-            'supervisor-1' => [
+            'supervisor-workflows' => [
                 'maxProcesses' => 3,
+            ],
+
+            'supervisor-notifications' => [
+                'maxProcesses' => 2,
+            ],
+
+            'supervisor-default' => [
+                'maxProcesses' => 2,
             ],
         ],
     ],

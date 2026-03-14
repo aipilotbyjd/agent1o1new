@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
+            PlanSeeder::class,
             NodeCategorySeeder::class,
             NodeSeeder::class,
             CredentialTypeSeeder::class,

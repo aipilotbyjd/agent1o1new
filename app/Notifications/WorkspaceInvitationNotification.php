@@ -12,7 +12,10 @@ class WorkspaceInvitationNotification extends Notification implements ShouldQueu
 {
     use Queueable;
 
-    public function __construct(public Invitation $invitation) {}
+    public function __construct(public Invitation $invitation)
+    {
+        $this->onQueue('notifications');
+    }
 
     /**
      * @return list<string>
