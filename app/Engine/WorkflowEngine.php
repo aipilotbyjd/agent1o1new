@@ -58,6 +58,8 @@ class WorkflowEngine
         $variables = $this->loadVariables($execution);
         $variables['__trigger_data'] = $execution->trigger_data ?? [];
 
+        $credentials = $this->loadCredentials($execution);
+
         $outputBuffer = new OutputBuffer(
             executionId: $execution->id,
             downstreamConsumers: $graph->downstreamConsumers,
@@ -68,6 +70,7 @@ class WorkflowEngine
             outputs: $outputBuffer,
             executionId: $execution->id,
             variables: $variables,
+            credentials: $credentials,
         );
 
         $execution->start();
@@ -423,6 +426,40 @@ class WorkflowEngine
         }
 
         return $variables;
+    }
+
+    /**
+     * Load credentials for the execution and perform auto-refresh if necessary.
+     *
+     * @return array<string, \App\Models\Credential>
+     */
+    private function loadCredentials(Execution $execution): array
+    {
+        $execution->load('workflow.credentials');
+
+        $credentials = [];
+        $oauthService = app(\App\Services\OAuthCredentialFlowService::class);
+
+        foreach ($execution->workflow->credentials as $credential) {
+            if ($credential->expires_at && $credential->expires_at->copy()->subMinutes(5)->isPast()) {
+                try {
+                    $refreshed = $oauthService->refreshToken($credential);
+                    if ($refreshed) {
+                        $credential = $refreshed;
+                    }
+                } catch (\Throwable $e) {
+                    // Log the error but proceed with the old credential (could fail later in node execution)
+                    Log::warning("Could not refresh token for credential {$credential->id}", ['error' => $e->getMessage()]);
+                }
+            }
+
+            $nodeId = $credential->pivot->node_id;
+            if ($nodeId) {
+                $credentials[$nodeId] = $credential;
+            }
+        }
+
+        return $credentials;
     }
 
     /**

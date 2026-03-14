@@ -36,16 +36,22 @@ class RunContext
 
     private float $startedAt;
 
+    /** @var array<string, \App\Models\Credential> nodeId → Credential instance */
+    private array $credentials;
+
     /**
      * @param  array<string, mixed>  $variables
+     * @param  array<string, \App\Models\Credential>  $credentials
      */
     public function __construct(
         public readonly WorkflowGraph $graph,
         public readonly OutputBuffer $outputs,
         public readonly int $executionId,
         array $variables = [],
+        array $credentials = [],
     ) {
         $this->variables = $variables;
+        $this->credentials = $credentials;
         $this->remainingInDegree = $graph->inDegree;
         $this->lastFlushAt = microtime(true);
         $this->startedAt = microtime(true);
@@ -54,6 +60,14 @@ class RunContext
         foreach ($graph->startNodes as $nodeId) {
             $this->readyQueue[] = $nodeId;
         }
+    }
+
+    /**
+     * Get a credential assigned to a node.
+     */
+    public function getCredential(string $nodeId): ?\App\Models\Credential
+    {
+        return $this->credentials[$nodeId] ?? null;
     }
 
     /**

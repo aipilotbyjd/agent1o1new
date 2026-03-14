@@ -143,4 +143,63 @@ class OAuthCredentialFlowService
 
         return $credential;
     }
+
+    /**
+     * Refresh an OAuth2 credential if it has a refresh token.
+     */
+    public function refreshToken(Credential $credential): ?Credential
+    {
+        $data = is_string($credential->data) ? json_decode($credential->data, true) : $credential->data;
+
+        if (! is_array($data) || empty($data['refresh_token'])) {
+            return null;
+        }
+
+        $credentialType = CredentialType::where('type', $credential->type)->first();
+        if (! $credentialType) {
+            return null;
+        }
+
+        $oauthConfig = $credentialType->oauth_config ?? [];
+        if (empty($oauthConfig['token_url'])) {
+            return null;
+        }
+
+        $tokenPayload = [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $data['refresh_token'],
+            'client_id' => $oauthConfig['client_id'] ?? '',
+            'client_secret' => $oauthConfig['client_secret'] ?? '',
+        ];
+
+        $response = Http::post($oauthConfig['token_url'], $tokenPayload);
+
+        if ($response->failed()) {
+            \Illuminate\Support\Facades\Log::warning("Failed to refresh OAuth token for credential {$credential->id}", ['response' => $response->body()]);
+
+            return null;
+        }
+
+        $tokens = $response->json();
+
+        $data['access_token'] = $tokens['access_token'] ?? $data['access_token'];
+        $data['refresh_token'] = $tokens['refresh_token'] ?? $data['refresh_token'];
+
+        $expiresAt = $credential->expires_at;
+        if (isset($tokens['expires_in'])) {
+            $data['expires_in'] = $tokens['expires_in'];
+            $expiresAt = now()->addSeconds($tokens['expires_in']);
+        }
+
+        $data['obtained_at'] = now()->toIso8601String();
+
+        $encodedData = is_string($credential->data) ? json_encode($data) : $data;
+
+        $credential->update([
+            'data' => $encodedData,
+            'expires_at' => $expiresAt,
+        ]);
+
+        return $credential;
+    }
 }

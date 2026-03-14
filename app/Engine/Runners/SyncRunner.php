@@ -97,13 +97,18 @@ class SyncRunner
         // Gather input data from predecessors
         $inputData = $context->gatherInputData($nodeId);
 
+        $credentialData = $context->getCredential($nodeId)?->data;
+        if (is_string($credentialData)) {
+            $credentialData = json_decode($credentialData, true);
+        }
+
         return new NodePayload(
             nodeId: $nodeId,
             nodeType: $node['type'] ?? 'unknown',
             nodeName: $node['name'] ?? $node['data']['name'] ?? $nodeId,
             config: $resolvedConfig,
             inputData: $inputData,
-            credentials: null,
+            credentials: $credentialData,
             variables: $context->getVariables(),
             executionMeta: [
                 'execution_id' => $context->executionId,
