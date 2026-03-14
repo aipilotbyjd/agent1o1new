@@ -2,42 +2,28 @@
 
 namespace App\Engine\Nodes\Apps\Google;
 
-use App\Engine\Contracts\NodeHandler;
-use App\Engine\NodeResult;
-use App\Engine\Nodes\Concerns\ResolvesCredentials;
+use App\Engine\Nodes\Apps\AppNode;
 use App\Engine\Runners\NodePayload;
 
 /**
  * Handles Gmail operations: send_email, add_label, list_messages.
  */
-class GmailNode implements NodeHandler
+class GmailNode extends AppNode
 {
-    use ResolvesCredentials;
-
     private const BASE_URL = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
-    public function handle(NodePayload $payload): NodeResult
+    protected function errorCode(): string
     {
-        $startTime = hrtime(true);
+        return 'GMAIL_ERROR';
+    }
 
-        try {
-            $operation = $payload->config['operation'] ?? 'send_email';
-
-            $result = match ($operation) {
-                'send_email' => $this->sendEmail($payload),
-                'add_label' => $this->addLabel($payload),
-                'list_messages' => $this->listMessages($payload),
-                default => throw new \InvalidArgumentException("Unknown operation: {$operation}"),
-            };
-
-            $durationMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-            return NodeResult::completed($result, $durationMs);
-        } catch (\Throwable $e) {
-            $durationMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-            return NodeResult::failed($e->getMessage(), 'GMAIL_ERROR', $durationMs);
-        }
+    protected function operations(): array
+    {
+        return [
+            'send_email' => $this->sendEmail(...),
+            'add_label' => $this->addLabel(...),
+            'list_messages' => $this->listMessages(...),
+        ];
     }
 
     /**

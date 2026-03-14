@@ -2,44 +2,30 @@
 
 namespace App\Engine\Nodes\Apps\Google;
 
-use App\Engine\Contracts\NodeHandler;
-use App\Engine\NodeResult;
-use App\Engine\Nodes\Concerns\ResolvesCredentials;
+use App\Engine\Nodes\Apps\AppNode;
 use App\Engine\Runners\NodePayload;
 
 /**
  * Handles Google Drive operations: list_files, create_folder, upload_file.
  */
-class GoogleDriveNode implements NodeHandler
+class GoogleDriveNode extends AppNode
 {
-    use ResolvesCredentials;
-
     private const BASE_URL = 'https://www.googleapis.com/drive/v3';
 
     private const UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3';
 
-    public function handle(NodePayload $payload): NodeResult
+    protected function errorCode(): string
     {
-        $startTime = hrtime(true);
+        return 'GOOGLE_DRIVE_ERROR';
+    }
 
-        try {
-            $operation = $payload->config['operation'] ?? 'list_files';
-
-            $result = match ($operation) {
-                'list_files' => $this->listFiles($payload),
-                'create_folder' => $this->createFolder($payload),
-                'upload_file' => $this->uploadFile($payload),
-                default => throw new \InvalidArgumentException("Unknown operation: {$operation}"),
-            };
-
-            $durationMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-            return NodeResult::completed($result, $durationMs);
-        } catch (\Throwable $e) {
-            $durationMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-            return NodeResult::failed($e->getMessage(), 'GOOGLE_DRIVE_ERROR', $durationMs);
-        }
+    protected function operations(): array
+    {
+        return [
+            'list_files' => $this->listFiles(...),
+            'create_folder' => $this->createFolder(...),
+            'upload_file' => $this->uploadFile(...),
+        ];
     }
 
     /**

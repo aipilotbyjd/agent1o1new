@@ -2,43 +2,29 @@
 
 namespace App\Engine\Nodes\Apps\Google;
 
-use App\Engine\Contracts\NodeHandler;
-use App\Engine\NodeResult;
-use App\Engine\Nodes\Concerns\ResolvesCredentials;
+use App\Engine\Nodes\Apps\AppNode;
 use App\Engine\Runners\NodePayload;
 
 /**
  * Handles Google Calendar operations: list_events, create_event, update_event, delete_event.
  */
-class GoogleCalendarNode implements NodeHandler
+class GoogleCalendarNode extends AppNode
 {
-    use ResolvesCredentials;
-
     private const BASE_URL = 'https://www.googleapis.com/calendar/v3';
 
-    public function handle(NodePayload $payload): NodeResult
+    protected function errorCode(): string
     {
-        $startTime = hrtime(true);
+        return 'GOOGLE_CALENDAR_ERROR';
+    }
 
-        try {
-            $operation = $payload->config['operation'] ?? 'list_events';
-
-            $result = match ($operation) {
-                'list_events' => $this->listEvents($payload),
-                'create_event' => $this->createEvent($payload),
-                'update_event' => $this->updateEvent($payload),
-                'delete_event' => $this->deleteEvent($payload),
-                default => throw new \InvalidArgumentException("Unknown operation: {$operation}"),
-            };
-
-            $durationMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-            return NodeResult::completed($result, $durationMs);
-        } catch (\Throwable $e) {
-            $durationMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-            return NodeResult::failed($e->getMessage(), 'GOOGLE_CALENDAR_ERROR', $durationMs);
-        }
+    protected function operations(): array
+    {
+        return [
+            'list_events' => $this->listEvents(...),
+            'create_event' => $this->createEvent(...),
+            'update_event' => $this->updateEvent(...),
+            'delete_event' => $this->deleteEvent(...),
+        ];
     }
 
     /**

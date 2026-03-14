@@ -2,42 +2,28 @@
 
 namespace App\Engine\Nodes\Apps\Google;
 
-use App\Engine\Contracts\NodeHandler;
-use App\Engine\NodeResult;
-use App\Engine\Nodes\Concerns\ResolvesCredentials;
+use App\Engine\Nodes\Apps\AppNode;
 use App\Engine\Runners\NodePayload;
 
 /**
  * Handles all Google Sheets operations: get_rows, append_row, update_row.
  */
-class GoogleSheetsNode implements NodeHandler
+class GoogleSheetsNode extends AppNode
 {
-    use ResolvesCredentials;
-
     private const BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
 
-    public function handle(NodePayload $payload): NodeResult
+    protected function errorCode(): string
     {
-        $startTime = hrtime(true);
+        return 'GOOGLE_SHEETS_ERROR';
+    }
 
-        try {
-            $operation = $payload->config['operation'] ?? 'get_rows';
-
-            $result = match ($operation) {
-                'get_rows' => $this->getRows($payload),
-                'append_row' => $this->appendRow($payload),
-                'update_row' => $this->updateRow($payload),
-                default => throw new \InvalidArgumentException("Unknown operation: {$operation}"),
-            };
-
-            $durationMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-            return NodeResult::completed($result, $durationMs);
-        } catch (\Throwable $e) {
-            $durationMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-            return NodeResult::failed($e->getMessage(), 'GOOGLE_SHEETS_ERROR', $durationMs);
-        }
+    protected function operations(): array
+    {
+        return [
+            'get_rows' => $this->getRows(...),
+            'append_row' => $this->appendRow(...),
+            'update_row' => $this->updateRow(...),
+        ];
     }
 
     /**
