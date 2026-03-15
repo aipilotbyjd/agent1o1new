@@ -156,10 +156,16 @@ class Workflow extends Model
     public function activate(): void
     {
         $this->update(['is_active' => true]);
+
+        app(\App\Services\WebhookAutoRegistrationService::class)
+            ->registerForWorkflow($this);
     }
 
     public function deactivate(): void
     {
+        app(\App\Services\WebhookAutoRegistrationService::class)
+            ->unregisterForWorkflow($this);
+
         $this->update(['is_active' => false]);
     }
 }

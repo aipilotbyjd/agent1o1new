@@ -15,6 +15,10 @@ class Webhook extends Model
         'workflow_id',
         'workspace_id',
         'uuid',
+        'provider',
+        'external_webhook_id',
+        'external_webhook_secret',
+        'provider_config',
         'path',
         'methods',
         'is_active',
@@ -39,9 +43,19 @@ class Webhook extends Model
             'methods' => 'array',
             'is_active' => 'boolean',
             'auth_config' => 'array',
+            'external_webhook_secret' => 'encrypted',
+            'provider_config' => 'array',
             'response_body' => 'array',
             'last_called_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Check if this webhook is managed by an external provider.
+     */
+    public function isExternallyManaged(): bool
+    {
+        return $this->provider !== null && $this->external_webhook_id !== null;
     }
 
     /**

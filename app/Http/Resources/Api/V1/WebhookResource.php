@@ -20,6 +20,8 @@ class WebhookResource extends JsonResource
             'workflow_id' => $this->workflow_id,
             'uuid' => $this->uuid,
             'url' => config('services.engine.api_url', config('app.url')).'/api/webhook/'.$this->uuid,
+            'provider' => $this->provider,
+            'is_externally_managed' => $this->isExternallyManaged(),
             'path' => $this->path,
             'methods' => $this->methods,
             'is_active' => $this->is_active,
