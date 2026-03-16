@@ -21,8 +21,8 @@ class WebhookService
      */
     public function create(Workspace $workspace, Workflow $workflow, array $data): Webhook
     {
-        if ($workflow->webhooks()->exists()) {
-            throw ApiException::conflict('This workflow already has a webhook. Each workflow can only have one webhook.');
+        if ($workflow->webhooks()->whereNull('provider')->exists()) {
+            throw ApiException::conflict('This workflow already has a manual webhook. Each workflow can only have one manual webhook.');
         }
 
         return Webhook::create([

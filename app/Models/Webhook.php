@@ -15,6 +15,7 @@ class Webhook extends Model
         'workflow_id',
         'workspace_id',
         'uuid',
+        'node_id',
         'provider',
         'external_webhook_id',
         'external_webhook_secret',

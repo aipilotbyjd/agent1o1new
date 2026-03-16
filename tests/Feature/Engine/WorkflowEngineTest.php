@@ -51,7 +51,7 @@ function createWorkflowWithVersion(
     return $workflow->fresh();
 }
 
-function createExecution(Workflow $workflow, User $owner): Execution
+function createEngineExecution(Workflow $workflow, User $owner): Execution
 {
     return Execution::create([
         'workflow_id' => $workflow->id,
@@ -98,7 +98,7 @@ test('executes a single trigger node workflow', function () {
         edges: [],
     );
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 
@@ -130,7 +130,7 @@ test('executes a linear trigger → transform workflow', function () {
         ]),
     );
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 
@@ -167,7 +167,7 @@ test('executes a three-node linear chain', function () {
         ]),
     );
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 
@@ -201,7 +201,7 @@ test('executes parallel branches that converge', function () {
         ]),
     );
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 
@@ -223,7 +223,7 @@ test('fails execution when workflow has no published version', function () {
         'current_version_id' => null,
     ]);
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 
@@ -241,7 +241,7 @@ test('fails execution when workflow has no nodes', function () {
         edges: [],
     );
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 
@@ -268,7 +268,7 @@ test('execution nodes have correct sequence numbers', function () {
         ]),
     );
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 
@@ -290,7 +290,7 @@ test('execution nodes have node_run_key populated', function () {
         edges: [],
     );
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 
@@ -314,7 +314,7 @@ test('increments workflow execution_count on completion', function () {
 
     $initialCount = $workflow->execution_count;
 
-    $execution = createExecution($workflow, $owner);
+    $execution = createEngineExecution($workflow, $owner);
 
     app(WorkflowEngine::class)->run($execution);
 

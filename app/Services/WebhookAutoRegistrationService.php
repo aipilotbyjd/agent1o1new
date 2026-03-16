@@ -68,18 +68,20 @@ class WebhookAutoRegistrationService
         }
 
         $credentials = $this->resolveCredentials($workflow, $node);
+        $nodeId = $node['id'] ?? null;
 
         if (! $credentials) {
             Log::warning('No credentials found for webhook auto-registration', [
                 'workflow_id' => $workflow->id,
                 'provider' => $provider,
-                'node_id' => $node['id'] ?? null,
+                'node_id' => $nodeId,
             ]);
 
             return;
         }
 
         $existingWebhook = $workflow->webhooks()
+            ->where('node_id', $nodeId)
             ->where('provider', $provider)
             ->first();
 
@@ -94,7 +96,8 @@ class WebhookAutoRegistrationService
             ]);
         }
 
-        $callbackUrl = $this->buildCallbackUrl($existingWebhook);
+        $uuid = $existingWebhook?->uuid ?? (string) Str::uuid();
+        $callbackUrl = $this->buildCallbackUrl($uuid);
         $events = $node['events'] ?? $node['config']['events'] ?? ['*'];
         $providerConfig = $this->buildProviderConfig($node, $provider);
 
@@ -111,7 +114,8 @@ class WebhookAutoRegistrationService
                 Webhook::create([
                     'workflow_id' => $workflow->id,
                     'workspace_id' => $workflow->workspace_id,
-                    'uuid' => (string) Str::uuid(),
+                    'uuid' => $uuid,
+                    'node_id' => $nodeId,
                     'provider' => $provider,
                     'external_webhook_id' => $result['external_id'],
                     'external_webhook_secret' => $result['secret'],
@@ -127,12 +131,14 @@ class WebhookAutoRegistrationService
             Log::info('External webhook registered', [
                 'workflow_id' => $workflow->id,
                 'provider' => $provider,
+                'node_id' => $nodeId,
                 'external_id' => $result['external_id'],
             ]);
         } catch (\Throwable $e) {
             Log::error('Failed to register external webhook', [
                 'workflow_id' => $workflow->id,
                 'provider' => $provider,
+                'node_id' => $nodeId,
                 'error' => $e->getMessage(),
             ]);
         }
@@ -292,9 +298,8 @@ class WebhookAutoRegistrationService
     /**
      * Build the callback URL for the webhook receiver endpoint.
      */
-    private function buildCallbackUrl(?Webhook $existingWebhook = null): string
+    private function buildCallbackUrl(string $uuid): string
     {
-        $uuid = $existingWebhook?->uuid ?? (string) Str::uuid();
         $baseUrl = config('services.engine.api_url', config('app.url'));
 
         return rtrim($baseUrl, '/').'/api/v1/webhook/'.$uuid;
