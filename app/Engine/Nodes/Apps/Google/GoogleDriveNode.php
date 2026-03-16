@@ -110,8 +110,7 @@ class GoogleDriveNode extends AppNode
         $body .= "--{$boundary}--";
 
         $response = $this->authenticatedRequest($payload->credentials)
-            ->withHeaders(['Content-Type' => "multipart/related; boundary={$boundary}"])
-            ->withBody($body)
+            ->withBody($body, "multipart/related; boundary={$boundary}")
             ->post(self::UPLOAD_URL.'/files?uploadType=multipart');
 
         $response->throw();
