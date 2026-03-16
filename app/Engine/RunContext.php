@@ -195,9 +195,12 @@ class RunContext
             }
         }
 
-        // If single predecessor, flatten for convenience
+        // For single predecessor, flatten at top level for convenience
+        // but also include the namespaced key so "nodeId.field" paths work.
         if (count($predecessors) === 1) {
-            return $inputData[$predecessors[0]] ?? [];
+            $flat = $inputData[$predecessors[0]] ?? [];
+
+            return array_merge($flat, $inputData);
         }
 
         return $inputData;
