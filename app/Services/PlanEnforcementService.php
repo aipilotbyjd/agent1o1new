@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SubscriptionStatus;
 use App\Exceptions\Plan\FeatureNotAvailableException;
 use App\Exceptions\Plan\InsufficientCreditsException;
 use App\Exceptions\Plan\PlanLimitException;
@@ -236,8 +237,7 @@ class PlanEnforcementService
 
         // Database fallback
         $subscription = $workspace->subscriptions()
-            ->where('status', 'active')
-            ->orWhere('status', 'trialing')
+            ->whereIn('status', [SubscriptionStatus::Active, SubscriptionStatus::Trialing])
             ->first();
 
         if (! $subscription) {

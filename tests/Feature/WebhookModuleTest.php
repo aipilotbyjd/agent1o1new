@@ -125,7 +125,7 @@ test('owner can view a webhook', function () {
     $webhook = createWebhook($workspace, $workflow);
 
     $response = $this->actingAs($owner, 'api')
-        ->getJson("/api/v1/workspaces/{$workspace->id}/webhooks/{$webhook->id}");
+        ->getJson("/api/v1/workspaces/{$workspace->id}/webhooks/{$webhook->uuid}");
 
     $response->assertOk()
         ->assertJsonPath('data.id', $webhook->id)
@@ -138,7 +138,7 @@ test('owner can update a webhook', function () {
     $webhook = createWebhook($workspace, $workflow);
 
     $response = $this->actingAs($owner, 'api')
-        ->putJson("/api/v1/workspaces/{$workspace->id}/webhooks/{$webhook->id}", [
+        ->putJson("/api/v1/workspaces/{$workspace->id}/webhooks/{$webhook->uuid}", [
             'methods' => ['POST', 'PUT'],
             'rate_limit' => 100,
             'is_active' => false,
@@ -155,7 +155,7 @@ test('owner can delete a webhook', function () {
     $webhook = createWebhook($workspace, $workflow);
 
     $response = $this->actingAs($owner, 'api')
-        ->deleteJson("/api/v1/workspaces/{$workspace->id}/webhooks/{$webhook->id}");
+        ->deleteJson("/api/v1/workspaces/{$workspace->id}/webhooks/{$webhook->uuid}");
 
     $response->assertOk();
     $this->assertDatabaseMissing('webhooks', ['id' => $webhook->id]);

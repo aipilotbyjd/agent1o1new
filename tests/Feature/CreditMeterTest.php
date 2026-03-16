@@ -12,9 +12,20 @@ use App\Models\Subscription;
 use App\Models\Workspace;
 use App\Models\WorkspaceUsagePeriod;
 use App\Services\CreditMeterService;
+use Illuminate\Support\Facades\Redis;
 
 describe('CreditMeterService', function () {
     beforeEach(function () {
+        try {
+            $prefix = config('database.redis.options.prefix', '');
+            $keys = Redis::keys('credits:available:*');
+            foreach ($keys as $key) {
+                Redis::del(str_replace($prefix, '', $key));
+            }
+        } catch (\Exception) {
+            // Redis not available
+        }
+
         $this->service = new CreditMeterService;
         $this->workspace = Workspace::factory()->create();
 

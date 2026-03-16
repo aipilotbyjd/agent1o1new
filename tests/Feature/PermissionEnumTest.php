@@ -3,15 +3,15 @@
 use App\Enums\Permission;
 use App\Enums\Role;
 
-it('has 83 permissions', function () {
-    expect(Permission::cases())->toHaveCount(83);
+it('has 87 permissions', function () {
+    expect(Permission::cases())->toHaveCount(87);
 });
 
 it('groups permissions by resource', function () {
     $groups = Permission::grouped();
 
     expect($groups)
-        ->toHaveKeys(['workspace', 'member', 'workflow', 'version', 'template', 'approval', 'contract', 'credential', 'execution', 'webhook', 'tag', 'variable', 'environment', 'ai', 'activity-log', 'audit-log', 'credit', 'connector'])
+        ->toHaveKeys(['workspace', 'member', 'workflow', 'version', 'template', 'approval', 'contract', 'credential', 'execution', 'webhook', 'polling-trigger', 'tag', 'variable', 'environment', 'ai', 'activity-log', 'audit-log', 'credit', 'connector', 'setting', 'log-stream', 'git-sync', 'sticky-note', 'pinned-data'])
         ->not->toHaveKey('role');
 });
 

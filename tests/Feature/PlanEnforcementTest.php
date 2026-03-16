@@ -11,7 +11,17 @@ use App\Services\PlanEnforcementService;
 use Illuminate\Support\Facades\Redis;
 
 beforeEach(function () {
-    $this->service = new PlanEnforcementService();
+    $this->service = new PlanEnforcementService;
+
+    try {
+        $prefix = config('database.redis.options.prefix', '');
+        $keys = Redis::keys('credits:available:*');
+        foreach ($keys as $key) {
+            Redis::del(str_replace($prefix, '', $key));
+        }
+    } catch (\Exception) {
+        // Redis not available
+    }
 });
 
 // ── Credit Checks ──────────────────────────────────────────────
@@ -240,7 +250,7 @@ describe('checkMembers', function () {
         $workspace = Workspace::factory()->create(['owner_id' => $owner->id]);
         // Add owner as member
         $workspace->members()->attach($owner->id, ['role' => 'owner', 'joined_at' => now()]);
-        
+
         $plan = Plan::factory()->free()->create(['limits' => ['members' => 1]]);
         $subscription = Subscription::factory()->create([
             'workspace_id' => $workspace->id,

@@ -210,12 +210,15 @@ class JobCallbackController extends Controller
                 $durationMs = (int) $started->diffInMilliseconds($completed);
             }
 
+            $nodeRunKey = $nodeData['node_run_key'] ?? $nodeData['node_id'].'_'.($nodeData['sequence'] ?? 0);
+
             ExecutionNode::updateOrCreate(
                 [
                     'execution_id' => $execution->id,
-                    'node_id' => $nodeData['node_id'],
+                    'node_run_key' => $nodeRunKey,
                 ],
                 [
+                    'node_id' => $nodeData['node_id'],
                     'node_type' => $nodeData['node_type'],
                     'node_name' => $nodeData['node_name'] ?? null,
                     'status' => $nodeData['status'],

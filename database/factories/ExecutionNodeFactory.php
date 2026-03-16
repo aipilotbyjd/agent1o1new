@@ -19,6 +19,7 @@ class ExecutionNodeFactory extends Factory
         return [
             'execution_id' => Execution::factory(),
             'node_id' => 'node_'.fake()->unique()->numberBetween(1, 1000),
+            'node_run_key' => fake()->unique()->uuid(),
             'node_type' => fake()->randomElement(['trigger_webhook', 'action_http_request', 'action_transform', 'logic_if']),
             'node_name' => fake()->words(2, true),
             'status' => 'pending',

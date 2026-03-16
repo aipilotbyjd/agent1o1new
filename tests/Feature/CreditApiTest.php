@@ -147,7 +147,7 @@ test('transactions are paginated', function () {
 
     $response->assertSuccessful()
         ->assertJsonCount(25, 'data')
-        ->assertJsonStructure(['meta' => ['current_page', 'last_page', 'total']]);
+        ->assertJsonStructure(['pagination' => ['current_page', 'last_page', 'total']]);
 });
 
 test('transactions are ordered by created_at desc', function () {
