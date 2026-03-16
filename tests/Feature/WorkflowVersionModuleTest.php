@@ -103,6 +103,44 @@ test('creating version on locked workflow fails', function () {
     $response->assertStatus(423);
 });
 
+test('version stores node data and position fields', function () {
+    [$owner, $workspace, $workflow] = setupWorkspaceAndWorkflow();
+
+    $response = $this->actingAs($owner, 'api')
+        ->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/versions", [
+            'nodes' => [
+                [
+                    'id' => 'trigger_1',
+                    'type' => 'trigger',
+                    'position' => ['x' => 100, 'y' => 200],
+                    'data' => ['label' => 'Start'],
+                ],
+                [
+                    'id' => 'http_1',
+                    'type' => 'http_request',
+                    'position' => ['x' => 400, 'y' => 200],
+                    'data' => [
+                        'method' => 'GET',
+                        'url' => 'https://example.com/api',
+                    ],
+                ],
+            ],
+            'edges' => [
+                ['source' => 'trigger_1', 'target' => 'http_1'],
+            ],
+        ]);
+
+    $response->assertStatus(201);
+
+    $version = WorkflowVersion::find($response->json('data.id'));
+    $nodes = collect($version->nodes)->keyBy('id');
+
+    expect($nodes['http_1']['data']['url'])->toBe('https://example.com/api');
+    expect($nodes['http_1']['data']['method'])->toBe('GET');
+    expect($nodes['http_1']['position'])->toBe(['x' => 400, 'y' => 200]);
+    expect($nodes['trigger_1']['data']['label'])->toBe('Start');
+});
+
 // ── List Versions ───────────────────────────────────────────
 
 test('owner can list workflow versions', function () {
