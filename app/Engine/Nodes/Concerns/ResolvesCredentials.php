@@ -25,7 +25,11 @@ trait ResolvesCredentials
 
         $authType = $credentials['auth_type'] ?? $credentials['type'] ?? null;
 
-        return match ($authType) {
+        if ($authType === null && ! empty($credentials['access_token'])) {
+            $authType = 'bearer';
+        }
+
+        return match (strtolower((string) $authType)) {
             'bearer', 'oauth2' => $request->withToken($credentials['access_token'] ?? $credentials['token'] ?? ''),
             'basic' => $request->withBasicAuth(
                 $credentials['username'] ?? '',

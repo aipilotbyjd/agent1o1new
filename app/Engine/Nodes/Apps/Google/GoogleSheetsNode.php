@@ -73,9 +73,13 @@ class GoogleSheetsNode extends AppNode
         }
 
         $response = $this->authenticatedRequest($payload->credentials)
+            ->withQueryParameters([
+                'valueInputOption' => 'USER_ENTERED',
+                'insertDataOption' => 'INSERT_ROWS',
+            ])
             ->post(self::BASE_URL."/{$spreadsheetId}/values/{$range}:append", [
                 'values' => $values,
-            ] + ['query' => ['valueInputOption' => 'USER_ENTERED', 'insertDataOption' => 'INSERT_ROWS']]);
+            ]);
 
         $response->throw();
 
@@ -100,9 +104,12 @@ class GoogleSheetsNode extends AppNode
         }
 
         $response = $this->authenticatedRequest($payload->credentials)
+            ->withQueryParameters([
+                'valueInputOption' => 'USER_ENTERED',
+            ])
             ->put(self::BASE_URL."/{$spreadsheetId}/values/{$range}", [
                 'values' => $values,
-            ] + ['query' => ['valueInputOption' => 'USER_ENTERED']]);
+            ]);
 
         $response->throw();
 

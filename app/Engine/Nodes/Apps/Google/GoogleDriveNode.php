@@ -99,13 +99,20 @@ class GoogleDriveNode extends AppNode
             $metadata['parents'] = [$parentId];
         }
 
+        $boundary = 'boundary_'.bin2hex(random_bytes(8));
+
+        $body = "--{$boundary}\r\n";
+        $body .= "Content-Type: application/json; charset=UTF-8\r\n\r\n";
+        $body .= json_encode($metadata)."\r\n";
+        $body .= "--{$boundary}\r\n";
+        $body .= "Content-Type: {$mimeType}\r\n\r\n";
+        $body .= $content."\r\n";
+        $body .= "--{$boundary}--";
+
         $response = $this->authenticatedRequest($payload->credentials)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->post(self::UPLOAD_URL.'/files?uploadType=multipart', [
-                'metadata' => $metadata,
-                'data' => base64_encode($content),
-                'mimeType' => $mimeType,
-            ]);
+            ->withHeaders(['Content-Type' => "multipart/related; boundary={$boundary}"])
+            ->withBody($body)
+            ->post(self::UPLOAD_URL.'/files?uploadType=multipart');
 
         $response->throw();
 

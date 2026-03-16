@@ -48,6 +48,10 @@ class OAuthCredentialFlowService
             $params['code_challenge_method'] = 'S256';
         }
 
+        if (! empty($oauthConfig['extra_params']) && is_array($oauthConfig['extra_params'])) {
+            $params = array_merge($params, $oauthConfig['extra_params']);
+        }
+
         $authorizationUrl = $oauthConfig['authorization_url'].'?'.http_build_query($params);
 
         OAuthCredentialState::create([
