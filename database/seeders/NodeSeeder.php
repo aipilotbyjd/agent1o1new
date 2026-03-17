@@ -906,7 +906,7 @@ class NodeSeeder extends Seeder
                 'config_schema' => [
                     'type' => 'object',
                     'properties' => [
-                        'operation' => ['type' => 'string', 'enum' => ['get_rows', 'append_row', 'update_row'], 'default' => 'get_rows'],
+                        'operation' => ['type' => 'string', 'enum' => ['get_rows', 'append_row', 'update_row', 'clear_range', 'delete_rows', 'lookup_rows', 'create_spreadsheet', 'get_spreadsheet_info'], 'default' => 'get_rows'],
                         'spreadsheet_id' => ['type' => 'string', 'description' => 'ID of the spreadsheet'],
                         'range' => ['type' => 'string', 'default' => 'Sheet1'],
                     ],
@@ -938,7 +938,7 @@ class NodeSeeder extends Seeder
                 'config_schema' => [
                     'type' => 'object',
                     'properties' => [
-                        'operation' => ['type' => 'string', 'enum' => ['list_files', 'create_folder', 'upload_file'], 'default' => 'list_files'],
+                        'operation' => ['type' => 'string', 'enum' => ['list_files', 'download_file', 'upload_file', 'update_file', 'create_folder', 'delete_file', 'share_file'], 'default' => 'list_files'],
                         'folder_id' => ['type' => 'string', 'description' => 'Folder ID (optional)'],
                     ],
                     'required' => ['operation'],
@@ -956,7 +956,7 @@ class NodeSeeder extends Seeder
                 'config_schema' => [
                     'type' => 'object',
                     'properties' => [
-                        'operation' => ['type' => 'string', 'enum' => ['send_email', 'add_label', 'list_messages'], 'default' => 'send_email'],
+                        'operation' => ['type' => 'string', 'enum' => ['send_email', 'reply_to_message', 'get_message', 'modify_message', 'add_label', 'list_messages', 'list_labels', 'delete_message'], 'default' => 'send_email'],
                         'to' => ['type' => 'string', 'description' => 'Recipient email address'],
                         'subject' => ['type' => 'string', 'description' => 'Email subject'],
                         'body' => ['type' => 'string', 'description' => 'Email HTML body'],
@@ -976,7 +976,7 @@ class NodeSeeder extends Seeder
                 'config_schema' => [
                     'type' => 'object',
                     'properties' => [
-                        'operation' => ['type' => 'string', 'enum' => ['list_events', 'create_event', 'update_event', 'delete_event'], 'default' => 'list_events'],
+                        'operation' => ['type' => 'string', 'enum' => ['list_events', 'get_event', 'create_event', 'update_event', 'delete_event', 'list_calendars'], 'default' => 'list_events'],
                         'calendar_id' => ['type' => 'string', 'default' => 'primary'],
                         'summary' => ['type' => 'string'],
                     ],
