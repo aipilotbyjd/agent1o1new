@@ -2,13 +2,17 @@
 
 namespace App\Engine;
 
+use App\Engine\Contracts\SuspendsExecution;
 use App\Engine\Data\ExpressionParser;
 use App\Engine\Data\OutputBuffer;
 use App\Engine\Enums\NodeType;
 use App\Engine\Exceptions\NodeFailedException;
 use App\Engine\Persistence\BatchWriter;
+use App\Engine\Persistence\CheckpointStore;
+use App\Engine\Runners\AsyncRunner;
 use App\Engine\Runners\SyncRunner;
 use App\Enums\ExecutionNodeStatus;
+use App\Jobs\ResumeWorkflowJob;
 use App\Models\Execution;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
@@ -18,8 +22,8 @@ use Illuminate\Support\Facades\Redis;
  *
  * Runs a compiled WorkflowGraph using a frontier-based scheduler:
  *  - Sync nodes execute instantly (transforms, conditions, triggers)
- *  - Async nodes will execute concurrently via Amp (Phase 2)
- *  - Blocking nodes trigger checkpoint + requeue (Phase 5)
+ *  - Async nodes execute concurrently via Laravel Concurrency
+ *  - Blocking nodes checkpoint state and requeue via delayed jobs
  *
  * Persistence is batched — node results accumulate in memory and flush
  * to the database periodically or on completion/failure.
@@ -30,7 +34,9 @@ class WorkflowEngine
         private readonly GraphCompiler $compiler,
         private readonly ExpressionParser $expressionParser,
         private readonly SyncRunner $syncRunner,
+        private readonly AsyncRunner $asyncRunner,
         private readonly BatchWriter $batchWriter,
+        private readonly CheckpointStore $checkpointStore,
     ) {}
 
     /**
@@ -80,6 +86,53 @@ class WorkflowEngine
     }
 
     /**
+     * Resume a suspended execution from its checkpoint.
+     */
+    public function resume(Execution $execution): void
+    {
+        $checkpoint = $this->checkpointStore->load($execution->id);
+
+        if (! $checkpoint) {
+            $execution->fail(['message' => 'No checkpoint found for resumption.']);
+
+            return;
+        }
+
+        $workflow = $execution->workflow;
+        $version = $workflow->currentVersion;
+
+        if (! $version) {
+            $execution->fail(['message' => 'Workflow has no published version.']);
+
+            return;
+        }
+
+        $graph = $this->compileGraph($version);
+        $credentials = $this->loadCredentials($execution);
+
+        $context = RunContext::fromCheckpoint(
+            graph: $graph,
+            executionId: $execution->id,
+            frontierState: array_merge(
+                $checkpoint->frontier_state,
+                [
+                    'frame_stack' => $checkpoint->frame_stack ?? [],
+                    'next_sequence' => $checkpoint->next_sequence ?? 1,
+                ],
+            ),
+            outputSnapshot: $checkpoint->output_refs ?? [],
+            credentials: $credentials,
+        );
+
+        $execution->resume();
+        $this->publishSseEvent($execution->id, 'execution.resumed');
+
+        $this->checkpointStore->delete($execution->id);
+
+        $this->executeLoop($execution, $graph, $context);
+    }
+
+    /**
      * Compile workflow version into a WorkflowGraph with caching.
      */
     private function compileGraph(\App\Models\WorkflowVersion $version): WorkflowGraph
@@ -118,15 +171,27 @@ class WorkflowEngine
                     $this->executeNode($nodeId, $graph, $context, $execution);
                 }
 
-                // Async nodes (Phase 2 — for now execute sequentially via SyncRunner)
-                foreach ($asyncNodes as $nodeId) {
-                    $this->executeNode($nodeId, $graph, $context, $execution);
+                // Execute async nodes concurrently via Laravel Concurrency
+                if (! empty($asyncNodes)) {
+                    $asyncResults = $this->asyncRunner->runBatch($asyncNodes, $graph, $context);
+
+                    foreach ($asyncResults as $nodeId => $result) {
+                        $this->commitNodeResult($nodeId, $result, $graph, $context, $execution);
+                    }
                 }
 
-                // Blocking nodes (Phase 5 — checkpoint + requeue)
-                // For now, execute inline
-                foreach ($blockingNodes as $nodeId) {
-                    $this->executeNode($nodeId, $graph, $context, $execution);
+                // Blocking nodes — checkpoint + requeue via delayed job
+                if (! empty($blockingNodes)) {
+                    $suspension = $this->handleSuspension($blockingNodes[0], $graph, $context, $execution);
+
+                    if ($suspension !== null) {
+                        return;
+                    }
+
+                    // Fallback: handler doesn't implement SuspendsExecution, run inline
+                    foreach ($blockingNodes as $nodeId) {
+                        $this->executeNode($nodeId, $graph, $context, $execution);
+                    }
                 }
 
                 // Flush to DB if threshold reached
@@ -228,6 +293,124 @@ class WorkflowEngine
         if ($result->status === ExecutionNodeStatus::Failed) {
             $this->handleNodeFailure($nodeId, $result, $graph, $context, $execution);
         }
+    }
+
+    /**
+     * Commit a pre-computed result (from AsyncRunner) into the execution state.
+     */
+    private function commitNodeResult(
+        string $nodeId,
+        NodeResult $result,
+        WorkflowGraph $graph,
+        RunContext $context,
+        Execution $execution,
+    ): void {
+        $this->publishSseEvent($execution->id, 'execution.node_started', [
+            'node_id' => $nodeId,
+            'node_type' => $graph->getNode($nodeId)['type'] ?? 'unknown',
+        ]);
+
+        $sequence = $context->nextSequence();
+
+        $this->batchWriter->record(
+            executionId: $execution->id,
+            nodeId: $nodeId,
+            nodeRunKey: $nodeId,
+            graph: $graph,
+            result: $result,
+            sequence: $sequence,
+        );
+
+        $context->complete(
+            nodeId: $nodeId,
+            result: $result,
+            activeBranches: $result->activeBranches,
+        );
+
+        $this->publishSseEvent($execution->id, 'execution.node_completed', [
+            'node_id' => $nodeId,
+            'status' => $result->status->value,
+            'duration_ms' => $result->durationMs,
+            'progress' => $graph->nodeCount() > 0
+                ? (int) round(($context->completedCount() / $graph->nodeCount()) * 100)
+                : 100,
+        ]);
+
+        if ($result->status === ExecutionNodeStatus::Failed) {
+            $this->handleNodeFailure($nodeId, $result, $graph, $context, $execution);
+        }
+    }
+
+    /**
+     * Handle a suspendable node: checkpoint state and dispatch a delayed resume job.
+     *
+     * Returns the Suspension if the execution was suspended, or null if the handler
+     * doesn't implement SuspendsExecution (caller should fall back to inline execution).
+     */
+    private function handleSuspension(
+        string $nodeId,
+        WorkflowGraph $graph,
+        RunContext $context,
+        Execution $execution,
+    ): ?\App\Engine\Data\Suspension {
+        $node = $graph->getNode($nodeId);
+        $type = $node['type'] ?? '';
+        $handler = NodeRegistry::handler($type);
+
+        if (! $handler instanceof SuspendsExecution) {
+            return null;
+        }
+
+        // Build payload and get suspension details (do NOT execute the node)
+        $nodePayloadFactory = app(\App\Engine\Runners\NodePayloadFactory::class);
+        $nodePayload = $nodePayloadFactory->build($nodeId, $graph, $context);
+        $suspension = $handler->suspend($nodePayload);
+
+        // Record the node as completed with the suspension output
+        $result = NodeResult::completed($suspension->nodeOutput);
+        $sequence = $context->nextSequence();
+
+        $this->batchWriter->record(
+            executionId: $execution->id,
+            nodeId: $nodeId,
+            nodeRunKey: $nodeId,
+            graph: $graph,
+            result: $result,
+            sequence: $sequence,
+        );
+
+        // Advance frontier past the suspending node
+        $context->complete(
+            nodeId: $nodeId,
+            result: $result,
+            activeBranches: $result->activeBranches,
+        );
+
+        // Flush all pending rows before suspending
+        $this->batchWriter->flush();
+
+        // Save checkpoint
+        $this->checkpointStore->save($execution, $context, $suspension);
+
+        // Transition execution to waiting
+        $execution->markWaiting($suspension->resumeAt, [
+            'suspend_reason' => $suspension->reason,
+            'suspended_node' => $nodeId,
+        ]);
+
+        $this->publishSseEvent($execution->id, 'execution.suspended', [
+            'node_id' => $nodeId,
+            'reason' => $suspension->reason,
+            'resume_at' => $suspension->resumeAt->toIso8601String(),
+        ]);
+
+        // Dispatch delayed resume job
+        $delaySeconds = max(0, (int) now()->diffInSeconds($suspension->resumeAt, false));
+
+        ResumeWorkflowJob::dispatch($execution)
+            ->delay(now()->addSeconds($delaySeconds));
+
+        return $suspension;
     }
 
     /**

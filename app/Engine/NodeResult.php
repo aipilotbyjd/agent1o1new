@@ -51,4 +51,38 @@ class NodeResult
     {
         return $this->status === ExecutionNodeStatus::Completed;
     }
+
+    /**
+     * Serialize to a plain array for cross-process transport.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'status' => $this->status->value,
+            'output' => $this->output,
+            'error' => $this->error,
+            'duration_ms' => $this->durationMs,
+            'active_branches' => $this->activeBranches,
+            'loop_items' => $this->loopItems,
+        ];
+    }
+
+    /**
+     * Reconstruct a NodeResult from a plain array (e.g. from a child process).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            status: ExecutionNodeStatus::from($data['status']),
+            output: $data['output'] ?? null,
+            error: $data['error'] ?? null,
+            durationMs: $data['duration_ms'] ?? null,
+            activeBranches: $data['active_branches'] ?? null,
+            loopItems: $data['loop_items'] ?? null,
+        );
+    }
 }

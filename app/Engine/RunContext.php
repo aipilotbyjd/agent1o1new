@@ -342,6 +342,64 @@ class RunContext
     }
 
     /**
+     * Serialize the full runtime state for checkpointing.
+     *
+     * @return array<string, mixed>
+     */
+    public function snapshot(): array
+    {
+        $completedSerialized = [];
+        foreach ($this->completedNodes as $nodeId => $result) {
+            $completedSerialized[$nodeId] = $result->toArray();
+        }
+
+        return [
+            'ready_queue' => $this->readyQueue,
+            'remaining_in_degree' => $this->remainingInDegree,
+            'completed_nodes' => $completedSerialized,
+            'variables' => $this->variables,
+            'next_sequence' => $this->nextSequence,
+            'frame_stack' => $this->frameStack,
+        ];
+    }
+
+    /**
+     * Restore RunContext from a checkpoint snapshot.
+     *
+     * @param  array<string, mixed>  $frontierState
+     * @param  array<string, mixed>  $outputSnapshot
+     * @param  array<string, \App\Models\Credential>  $credentials
+     */
+    public static function fromCheckpoint(
+        WorkflowGraph $graph,
+        int $executionId,
+        array $frontierState,
+        array $outputSnapshot,
+        array $credentials = [],
+    ): self {
+        $instance = new self(
+            graph: $graph,
+            outputs: OutputBuffer::fromSnapshot($executionId, $outputSnapshot, $graph->downstreamConsumers),
+            executionId: $executionId,
+            variables: $frontierState['variables'] ?? [],
+            credentials: $credentials,
+        );
+
+        // Restore internal state
+        $instance->readyQueue = $frontierState['ready_queue'] ?? [];
+        $instance->remainingInDegree = $frontierState['remaining_in_degree'] ?? $graph->inDegree;
+        $instance->nextSequence = $frontierState['next_sequence'] ?? 1;
+        $instance->frameStack = $frontierState['frame_stack'] ?? [];
+
+        // Restore completed nodes from serialized NodeResults
+        foreach ($frontierState['completed_nodes'] ?? [] as $nodeId => $resultData) {
+            $instance->completedNodes[$nodeId] = NodeResult::fromArray($resultData);
+        }
+
+        return $instance;
+    }
+
+    /**
      * Determine which successors to advance for a given node.
      *
      * For conditional nodes, only edges matching the active branches are followed.

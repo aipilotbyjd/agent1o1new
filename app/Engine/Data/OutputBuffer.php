@@ -163,6 +163,47 @@ class OutputBuffer
     }
 
     /**
+     * Serialize outputs and ref counts for checkpointing.
+     *
+     * @return array<string, mixed>
+     */
+    public function snapshot(): array
+    {
+        return [
+            'outputs' => $this->all(),
+            'ref_counts' => $this->refCounts,
+        ];
+    }
+
+    /**
+     * Restore OutputBuffer from a checkpoint snapshot.
+     *
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, list<string>>  $downstreamConsumers
+     */
+    public static function fromSnapshot(
+        int $executionId,
+        array $snapshot,
+        array $downstreamConsumers = [],
+    ): self {
+        $instance = new self(
+            executionId: $executionId,
+            downstreamConsumers: $downstreamConsumers,
+        );
+
+        foreach ($snapshot['outputs'] ?? [] as $nodeId => $output) {
+            $instance->store($nodeId, $output);
+        }
+
+        // Restore ref counts from snapshot instead of re-computing from downstream consumers
+        if (isset($snapshot['ref_counts'])) {
+            $instance->refCounts = $snapshot['ref_counts'];
+        }
+
+        return $instance;
+    }
+
+    /**
      * @param  array<string, mixed>  $output
      */
     private function spillToDisk(string $nodeId, array $output): void

@@ -2,7 +2,6 @@
 
 namespace App\Engine\Runners;
 
-use App\Engine\Data\ExpressionParser;
 use App\Engine\Exceptions\NodeFailedException;
 use App\Engine\NodeRegistry;
 use App\Engine\NodeResult;
@@ -17,7 +16,7 @@ use App\Engine\WorkflowGraph;
  */
 class SyncRunner
 {
-    public function __construct(private readonly ExpressionParser $expressionParser) {}
+    public function __construct(private readonly NodePayloadFactory $payloadFactory) {}
 
     /**
      * Execute a single sync node.
@@ -33,7 +32,7 @@ class SyncRunner
             return NodeResult::failed("Unknown node type [{$type}] for node [{$nodeId}].", 'UNKNOWN_TYPE');
         }
 
-        $payload = $this->buildPayload($nodeId, $graph, $context);
+        $payload = $this->payloadFactory->build($nodeId, $graph, $context);
 
         try {
             return $handler->handle($payload);
@@ -72,49 +71,5 @@ class SyncRunner
         }
 
         return $results;
-    }
-
-    /**
-     * Build the NodePayload for a node with fully resolved expressions.
-     */
-    private function buildPayload(string $nodeId, WorkflowGraph $graph, RunContext $context): NodePayload
-    {
-        $node = $graph->getNode($nodeId);
-        $compiledConfig = $graph->getCompiledConfig($nodeId);
-        $expressionContext = $context->buildExpressionContext();
-
-        // Resolve compiled expressions in config
-        $resolvedConfig = ! empty($compiledConfig)
-            ? $this->expressionParser->resolveConfig($compiledConfig, $expressionContext)
-            : ($node['data'] ?? $node['config'] ?? []);
-
-        // Inject operation for app nodes (e.g., "google_sheets.append_row" → operation = "append_row")
-        $operation = NodeRegistry::operation($node['type'] ?? '');
-        if ($operation !== null && ! isset($resolvedConfig['operation'])) {
-            $resolvedConfig['operation'] = $operation;
-        }
-
-        // Gather input data from predecessors
-        $inputData = $context->gatherInputData($nodeId);
-
-        $credentialData = $context->getCredential($nodeId)?->data;
-        if (is_string($credentialData)) {
-            $credentialData = json_decode($credentialData, true);
-        }
-
-        return new NodePayload(
-            nodeId: $nodeId,
-            nodeType: $node['type'] ?? 'unknown',
-            nodeName: $node['name'] ?? $node['data']['name'] ?? $nodeId,
-            config: $resolvedConfig,
-            inputData: $inputData,
-            credentials: $credentialData,
-            variables: $context->getVariables(),
-            executionMeta: [
-                'execution_id' => $context->executionId,
-                'trigger_data' => $context->getVariables()['__trigger_data'] ?? [],
-            ],
-            nodeRunKey: $nodeId,
-        );
     }
 }

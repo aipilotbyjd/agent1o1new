@@ -146,6 +146,14 @@ class Execution extends Model
         return $this->hasOne(JobStatus::class);
     }
 
+    /**
+     * @return HasOne<ExecutionCheckpoint, $this>
+     */
+    public function checkpoint(): HasOne
+    {
+        return $this->hasOne(ExecutionCheckpoint::class);
+    }
+
     // ── State Transitions ─────────────────────────────────────
 
     public function start(): void
@@ -184,6 +192,21 @@ class Execution extends Model
             'duration_ms' => $this->started_at
                 ? (int) $this->started_at->diffInMilliseconds(now())
                 : null,
+        ]);
+    }
+
+    public function markWaiting(\Carbon\CarbonInterface $resumeAt, ?array $meta = null): void
+    {
+        $this->update([
+            'status' => ExecutionStatus::Waiting,
+            'result_data' => $meta,
+        ]);
+    }
+
+    public function resume(): void
+    {
+        $this->update([
+            'status' => ExecutionStatus::Running,
         ]);
     }
 
