@@ -574,8 +574,8 @@ class NodeSeeder extends Seeder
             [
                 'category' => 'communication',
                 'type' => 'comm.slack_message',
-                'name' => 'Slack Message',
-                'description' => 'Send a message to a Slack channel or user.',
+                'name' => 'Slack',
+                'description' => 'Send messages, list channels, or list users in Slack.',
                 'icon' => 'chat-bubble-left',
                 'color' => '#EC4899',
                 'node_kind' => 'action',
@@ -584,24 +584,21 @@ class NodeSeeder extends Seeder
                 'config_schema' => [
                     'type' => 'object',
                     'properties' => [
-                        'channel' => ['type' => 'string'],
+                        'operation' => ['type' => 'string', 'enum' => ['send_message', 'list_channels', 'list_users'], 'default' => 'send_message'],
+                        'channel' => ['type' => 'string', 'description' => 'Channel ID or name (required for send_message)'],
                         'as_user' => ['type' => 'boolean', 'default' => false],
                     ],
-                    'required' => ['channel'],
+                    'required' => ['operation'],
                 ],
                 'input_schema' => [
                     'type' => 'object',
                     'properties' => [
                         'message' => ['type' => 'string'],
                     ],
-                    'required' => ['message'],
                 ],
                 'output_schema' => [
                     'type' => 'object',
-                    'properties' => [
-                        'ts' => ['type' => 'string'],
-                        'ok' => ['type' => 'boolean'],
-                    ],
+                    'properties' => [],
                 ],
             ],
             [
@@ -894,6 +891,25 @@ class NodeSeeder extends Seeder
             ],
 
             // ── Integrations (Apps) ───────────────────────────────────
+            [
+                'category' => 'data',
+                'type' => 'notion.query_database',
+                'name' => 'Notion',
+                'description' => 'Create pages, query databases, or update content in Notion.',
+                'icon' => 'document',
+                'color' => '#000000',
+                'node_kind' => 'action',
+                'credential_type' => 'notion',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'operation' => ['type' => 'string', 'enum' => ['query_database', 'create_page', 'update_page'], 'default' => 'query_database'],
+                        'database_id' => ['type' => 'string'],
+                        'page_id' => ['type' => 'string'],
+                    ],
+                    'required' => ['operation'],
+                ],
+            ],
             [
                 'category' => 'data',
                 'type' => 'google_sheets.get_rows',

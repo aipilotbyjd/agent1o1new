@@ -151,8 +151,8 @@ it('overwrites existing checkpoint on save', function () {
 
     $store = new CheckpointStore;
 
-    $store->save($execution, $context, new Suspension(reason: 'first'));
-    $store->save($execution, $context, new Suspension(reason: 'second'));
+    $store->save($execution, $context, new Suspension(reason: 'first', resumeAt: now()->addMinutes(5)));
+    $store->save($execution, $context, new Suspension(reason: 'second', resumeAt: now()->addMinutes(5)));
 
     expect(ExecutionCheckpoint::where('execution_id', $execution->id)->count())->toBe(1)
         ->and($store->load($execution->id)->suspend_reason)->toBe('second');
@@ -170,7 +170,7 @@ it('deletes a checkpoint', function () {
     );
 
     $store = new CheckpointStore;
-    $store->save($execution, $context, new Suspension(reason: 'wait'));
+    $store->save($execution, $context, new Suspension(reason: 'wait', resumeAt: now()->addMinutes(5)));
     $store->delete($execution->id);
 
     expect($store->load($execution->id))->toBeNull();

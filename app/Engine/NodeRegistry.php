@@ -27,6 +27,45 @@ class NodeRegistry
     private static array $cache = [];
 
     /**
+     * Aliases for mapping catalog/seeder types to engine types.
+     *
+     * @var array<string, string>
+     */
+    private static array $aliases = [
+        // Triggers
+        'trigger.webhook' => 'trigger',
+        'trigger.schedule' => 'trigger',
+        'trigger.manual' => 'trigger',
+
+        // Flow Control
+        'flow.if' => 'if',
+        'flow.switch' => 'switch',
+        'flow.loop' => 'loop',
+        'flow.delay' => 'delay',
+        'flow.merge' => 'merge',
+
+        // Data
+        'data.transform' => 'transform',
+        'data.set_variable' => 'set_variable',
+        'data.filter' => 'util.filter',
+        'data.aggregate' => 'util.aggregate',
+        'data.json_parse' => 'util.json_parse',
+
+        // HTTP & APIs
+        'http.request' => 'http_request',
+        'http.graphql' => 'http_request',
+        'http.webhook_response' => 'http_request',
+
+        // Utility
+        'util.code' => 'code',
+
+        // Communication
+        'comm.slack_message' => 'slack.send_message',
+        'comm.discord_message' => 'discord.send_message',
+        'comm.send_email' => 'mail.send_email',
+    ];
+
+    /**
      * Resolve a node type string to its handler class.
      *
      * @return class-string<NodeHandler>|null
@@ -37,14 +76,16 @@ class NodeRegistry
             return self::$cache[$type];
         }
 
+        $resolvedType = self::$aliases[$type] ?? $type;
+
         // 1. Try core/flow enum first
-        $enumCase = NodeType::tryFrom($type);
+        $enumCase = NodeType::tryFrom($resolvedType);
         if ($enumCase !== null) {
             return self::$cache[$type] = $enumCase->handlerClass();
         }
 
         // 2. Try convention-based app resolution
-        $handlerClass = self::resolveAppHandler($type);
+        $handlerClass = self::resolveAppHandler($resolvedType);
         if ($handlerClass !== null && class_exists($handlerClass)) {
             return self::$cache[$type] = $handlerClass;
         }
@@ -74,11 +115,13 @@ class NodeRegistry
      */
     public static function operation(string $type): ?string
     {
-        if (! str_contains($type, '.')) {
+        $resolvedType = self::$aliases[$type] ?? $type;
+
+        if (! str_contains($resolvedType, '.')) {
             return null;
         }
 
-        return Str::afterLast($type, '.');
+        return Str::afterLast($resolvedType, '.');
     }
 
     /**
@@ -86,7 +129,9 @@ class NodeRegistry
      */
     public static function isAppNode(string $type): bool
     {
-        return str_contains($type, '.') && ! NodeType::tryFrom($type);
+        $resolvedType = self::$aliases[$type] ?? $type;
+
+        return str_contains($resolvedType, '.') && ! NodeType::tryFrom($resolvedType);
     }
 
     /**
