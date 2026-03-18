@@ -20,13 +20,13 @@ it('seeds all nodes with correct categories', function () {
     $this->seed(NodeCategorySeeder::class);
     $this->seed(NodeSeeder::class);
 
-    expect(Node::count())->toBe(33);
+    expect(Node::count())->toBe(36);
 
     $nodesByKind = Node::query()->selectRaw('node_kind, count(*) as cnt')
         ->groupBy('node_kind')
         ->pluck('cnt', 'node_kind');
 
-    expect($nodesByKind->sort()->values()->all())->toBe([3, 6, 24]);
+    expect($nodesByKind->sort()->values()->all())->toBe([3, 6, 27]);
 });
 
 it('makes all nodes active by default', function () {
@@ -43,5 +43,5 @@ it('is idempotent when run twice', function () {
     $this->seed(NodeSeeder::class);
 
     expect(NodeCategory::count())->toBe(8)
-        ->and(Node::count())->toBe(33);
+        ->and(Node::count())->toBe(36);
 });

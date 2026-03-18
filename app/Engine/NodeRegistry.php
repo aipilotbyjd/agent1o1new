@@ -59,6 +59,23 @@ class NodeRegistry
         // Utility
         'util.code' => 'code',
 
+        // AI — all AI nodes route to the OpenAI app node
+        'ai.llm' => 'openai.chat_completion',
+        'ai.text_classifier' => 'openai.text_classifier',
+        'ai.summarizer' => 'openai.summarizer',
+
+        // Utility nodes resolve to their own handlers
+        'util.template' => 'util.template',
+        'util.logger' => 'util.logger',
+        'util.error_handler' => 'util.error_handler',
+        'util.filter' => 'util.filter',
+        'util.aggregate' => 'util.aggregate',
+        'util.json_parse' => 'util.json_parse',
+
+        // Storage
+        'storage.read_file' => 'storage.read_file',
+        'storage.write_file' => 'storage.write_file',
+
         // Communication
         'comm.slack_message' => 'slack.send_message',
         'comm.discord_message' => 'discord.send_message',
@@ -185,6 +202,30 @@ class NodeRegistry
             'gmail' => ['Google', 'GmailNode'],
             'google_drive' => ['Google', 'GoogleDriveNode'],
             'google_calendar' => ['Google', 'GoogleCalendarNode'],
+
+            // OpenAI AI nodes
+            'openai' => ['OpenAi', 'OpenAiNode'],
+
+            // Utility nodes
+            'util' => ['Util', 'UtilNode'],
+
+            // Storage nodes
+            'storage' => ['Storage', 'StorageNode'],
+
+            // Stripe
+            'stripe' => ['Stripe', 'StripeNode'],
+
+            // Airtable
+            'airtable' => ['Airtable', 'AirtableNode'],
+
+            // Discord
+            'discord' => ['Discord', 'DiscordNode'],
+
+            // Mail
+            'mail' => ['Mail', 'MailNode'],
+
+            // GitHub
+            'github' => ['GitHub', 'GitHubNode'],
         ];
     }
 

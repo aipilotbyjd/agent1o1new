@@ -999,6 +999,68 @@ class NodeSeeder extends Seeder
                     'required' => ['operation', 'calendar_id'],
                 ],
             ],
+
+            // ── Stripe ───────────────────────────────────────────────
+            [
+                'category' => 'data',
+                'type' => 'stripe.create_customer',
+                'name' => 'Stripe',
+                'description' => 'Create customers, invoices, charges, and manage payments via Stripe.',
+                'icon' => 'credit-card',
+                'color' => '#635BFF',
+                'node_kind' => 'action',
+                'credential_type' => 'stripe',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'operation' => ['type' => 'string', 'enum' => ['create_customer', 'create_invoice', 'list_payments', 'create_charge', 'get_balance'], 'default' => 'create_customer'],
+                    ],
+                    'required' => ['operation'],
+                ],
+            ],
+
+            // ── Airtable ─────────────────────────────────────────────
+            [
+                'category' => 'data',
+                'type' => 'airtable.list_records',
+                'name' => 'Airtable',
+                'description' => 'List, create, update, or delete records in Airtable bases.',
+                'icon' => 'table-cells',
+                'color' => '#18BFFF',
+                'node_kind' => 'action',
+                'credential_type' => 'airtable',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'operation' => ['type' => 'string', 'enum' => ['list_records', 'get_record', 'create_record', 'update_record', 'delete_record'], 'default' => 'list_records'],
+                        'base_id' => ['type' => 'string'],
+                        'table_name' => ['type' => 'string'],
+                        'record_id' => ['type' => 'string'],
+                    ],
+                    'required' => ['operation', 'base_id', 'table_name'],
+                ],
+            ],
+
+            // ── GitHub ───────────────────────────────────────────────
+            [
+                'category' => 'data',
+                'type' => 'github.list_repos',
+                'name' => 'GitHub',
+                'description' => 'List repos, create issues, manage pull requests on GitHub.',
+                'icon' => 'code-bracket',
+                'color' => '#24292E',
+                'node_kind' => 'action',
+                'credential_type' => 'github',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'operation' => ['type' => 'string', 'enum' => ['list_repos', 'create_issue', 'list_issues', 'create_pull_request'], 'default' => 'list_repos'],
+                        'owner' => ['type' => 'string'],
+                        'repo' => ['type' => 'string'],
+                    ],
+                    'required' => ['operation'],
+                ],
+            ],
         ];
 
         foreach ($nodes as $nodeData) {
