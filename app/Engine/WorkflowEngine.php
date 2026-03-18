@@ -30,6 +30,9 @@ use Illuminate\Support\Facades\Redis;
  */
 class WorkflowEngine
 {
+    /** @var array<int, int> executionId → last EXPIRE refresh timestamp */
+    private array $lastExpireRefresh = [];
+
     public function __construct(
         private readonly GraphCompiler $compiler,
         private readonly ExpressionParser $expressionParser,
@@ -621,21 +624,8 @@ class WorkflowEngine
         $execution->load('workflow.credentials');
 
         $credentials = [];
-        $oauthService = app(\App\Services\OAuthCredentialFlowService::class);
 
         foreach ($execution->workflow->credentials as $credential) {
-            if ($credential->expires_at && $credential->expires_at->copy()->subMinutes(5)->isPast()) {
-                try {
-                    $refreshed = $oauthService->refreshToken($credential);
-                    if ($refreshed) {
-                        $credential = $refreshed;
-                    }
-                } catch (\Throwable $e) {
-                    // Log the error but proceed with the old credential (could fail later in node execution)
-                    Log::warning("Could not refresh token for credential {$credential->id}", ['error' => $e->getMessage()]);
-                }
-            }
-
             $nodeId = $credential->pivot->node_id;
             if ($nodeId) {
                 $credentials[$nodeId] = $credential;
@@ -662,10 +652,17 @@ class WorkflowEngine
         try {
             $streamKey = "execution:{$executionId}:events";
             $pubsubChannel = "linkflow:execution:{$executionId}:live";
+            $client = Redis::connection()->client();
 
-            Redis::connection()->client()->xadd($streamKey, '*', ['payload' => $payload]);
-            Redis::connection()->client()->expire($streamKey, 300);
-            Redis::connection()->client()->publish($pubsubChannel, $payload);
+            $client->pipeline(function ($pipe) use ($streamKey, $pubsubChannel, $payload) {
+                $pipe->xadd($streamKey, '*', ['payload' => $payload]);
+                $pipe->publish($pubsubChannel, $payload);
+            });
+
+            if (($this->lastExpireRefresh[$executionId] ?? 0) < time() - 30) {
+                $client->expire($streamKey, 300);
+                $this->lastExpireRefresh[$executionId] = time();
+            }
         } catch (\Throwable) {
             // SSE publishing is best-effort
         }

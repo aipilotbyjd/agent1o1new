@@ -24,12 +24,15 @@ class NodePayloadFactory
     {
         $node = $graph->getNode($nodeId);
         $compiledConfig = $graph->getCompiledConfig($nodeId);
-        $expressionContext = $context->buildExpressionContext();
 
-        // Resolve compiled expressions in config
-        $resolvedConfig = ! empty($compiledConfig)
-            ? $this->expressionParser->resolveConfig($compiledConfig, $expressionContext)
-            : ($node['data'] ?? $node['config'] ?? []);
+        if (! empty($compiledConfig)) {
+            $expressionContext = $this->hasExpressions($compiledConfig)
+                ? $context->buildExpressionContext()
+                : [];
+            $resolvedConfig = $this->expressionParser->resolveConfig($compiledConfig, $expressionContext);
+        } else {
+            $resolvedConfig = $node['data'] ?? $node['config'] ?? [];
+        }
 
         // Inject operation for app nodes (e.g., "google_sheets.append_row" → operation = "append_row")
         $operation = NodeRegistry::operation($node['type'] ?? '');
@@ -59,5 +62,26 @@ class NodePayloadFactory
             ],
             nodeRunKey: $nodeId,
         );
+    }
+
+    /**
+     * Check whether a compiled config tree contains any expression tokens.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function hasExpressions(array $config): bool
+    {
+        foreach ($config as $value) {
+            if (is_array($value)) {
+                if (isset($value['__expr'])) {
+                    return true;
+                }
+                if ($this->hasExpressions($value)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

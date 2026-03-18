@@ -53,6 +53,12 @@ class OutputBuffer
             return;
         }
 
+        if ($this->isObviouslySmall($output)) {
+            $this->outputs[$nodeId] = $output;
+
+            return;
+        }
+
         $encoded = json_encode($output);
         $size = $encoded !== false ? strlen($encoded) : 0;
 
@@ -63,6 +69,30 @@ class OutputBuffer
         }
 
         $this->outputs[$nodeId] = $output;
+    }
+
+    /**
+     * Cheap heuristic: if the output is a flat, small array it definitely won't exceed the spill threshold.
+     *
+     * @param  array<string, mixed>  $output
+     */
+    private function isObviouslySmall(array $output): bool
+    {
+        if (count($output) > 8) {
+            return false;
+        }
+
+        foreach ($output as $value) {
+            if (is_array($value) || is_object($value)) {
+                return false;
+            }
+
+            if (is_string($value) && strlen($value) > 4096) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

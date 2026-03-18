@@ -38,9 +38,9 @@ class AsyncRunner
             return [];
         }
 
-        // If only one node, run inline — no overhead from concurrency
-        if (count($nodeIds) === 1) {
-            return $this->runSingle($nodeIds[0], $graph, $context);
+        // Small batches run inline — avoids child-process overhead
+        if (count($nodeIds) <= 2) {
+            return $this->runSequentialInline($nodeIds, $graph, $context);
         }
 
         // Build all payloads BEFORE launching concurrent work (reads from mutable RunContext)
@@ -62,29 +62,41 @@ class AsyncRunner
     }
 
     /**
-     * Execute a single node inline (no process overhead).
+     * Run multiple nodes sequentially inline (no child-process overhead).
      *
+     * @param  list<string>  $nodeIds
      * @return array<string, NodeResult>
      */
-    private function runSingle(string $nodeId, WorkflowGraph $graph, RunContext $context): array
+    private function runSequentialInline(array $nodeIds, WorkflowGraph $graph, RunContext $context): array
     {
-        $payload = $this->payloadFactory->build($nodeId, $graph, $context);
+        $results = [];
 
-        try {
-            $handler = NodeRegistry::handler($payload->nodeType);
+        foreach ($nodeIds as $nodeId) {
+            $payload = $this->payloadFactory->build($nodeId, $graph, $context);
 
-            if ($handler === null) {
-                return [$nodeId => NodeResult::failed("Unknown node type [{$payload->nodeType}].", 'UNKNOWN_TYPE')];
+            try {
+                $handler = NodeRegistry::handler($payload->nodeType);
+
+                if ($handler === null) {
+                    $results[$nodeId] = NodeResult::failed("Unknown node type [{$payload->nodeType}].", 'UNKNOWN_TYPE');
+
+                    continue;
+                }
+
+                $results[$nodeId] = $handler->handle($payload);
+            } catch (\Throwable $e) {
+                $results[$nodeId] = NodeResult::failed($e->getMessage(), 'NODE_EXECUTION_ERROR');
             }
-
-            return [$nodeId => $handler->handle($payload)];
-        } catch (\Throwable $e) {
-            return [$nodeId => NodeResult::failed($e->getMessage(), 'NODE_EXECUTION_ERROR')];
         }
+
+        return $results;
     }
 
     /**
      * Execute a chunk of nodes concurrently via Laravel Concurrency.
+     *
+     * Nodes are batched into $workerCount tasks so each child process
+     * handles multiple nodes, reducing process-spawn overhead.
      *
      * @param  list<string>  $chunk
      * @param  array<string, NodePayload>  $payloads
@@ -92,72 +104,81 @@ class AsyncRunner
      */
     private function executeChunk(array $chunk, array $payloads): array
     {
+        $workerCount = min($this->maxConcurrency, count($chunk));
+        $batches = array_chunk($chunk, (int) ceil(count($chunk) / $workerCount));
+
         $tasks = [];
-        $indexToNodeId = [];
 
-        foreach ($chunk as $index => $nodeId) {
-            $payload = $payloads[$nodeId];
-            $indexToNodeId[$index] = $nodeId;
+        foreach ($batches as $batch) {
+            $serializedBatch = [];
 
-            // Serialize payload to plain array for the child process
-            $serializedPayload = [
-                'node_id' => $payload->nodeId,
-                'node_type' => $payload->nodeType,
-                'node_name' => $payload->nodeName,
-                'config' => $payload->config,
-                'input_data' => $payload->inputData,
-                'credentials' => $payload->credentials,
-                'variables' => $payload->variables,
-                'execution_meta' => $payload->executionMeta,
-                'node_run_key' => $payload->nodeRunKey,
-            ];
+            foreach ($batch as $nodeId) {
+                $payload = $payloads[$nodeId];
+                $serializedBatch[] = [
+                    'node_id' => $payload->nodeId,
+                    'node_type' => $payload->nodeType,
+                    'node_name' => $payload->nodeName,
+                    'config' => $payload->config,
+                    'input_data' => $payload->inputData,
+                    'credentials' => $payload->credentials,
+                    'variables' => $payload->variables,
+                    'execution_meta' => $payload->executionMeta,
+                    'node_run_key' => $payload->nodeRunKey,
+                ];
+            }
 
-            $tasks[] = function () use ($serializedPayload) {
-                // Reconstruct payload inside child process
-                $payload = new \App\Engine\Runners\NodePayload(
-                    nodeId: $serializedPayload['node_id'],
-                    nodeType: $serializedPayload['node_type'],
-                    nodeName: $serializedPayload['node_name'],
-                    config: $serializedPayload['config'],
-                    inputData: $serializedPayload['input_data'],
-                    credentials: $serializedPayload['credentials'],
-                    variables: $serializedPayload['variables'],
-                    executionMeta: $serializedPayload['execution_meta'],
-                    nodeRunKey: $serializedPayload['node_run_key'],
-                );
+            $tasks[] = function () use ($serializedBatch) {
+                $results = [];
 
-                $handler = \App\Engine\NodeRegistry::handler($payload->nodeType);
+                foreach ($serializedBatch as $raw) {
+                    $payload = new \App\Engine\Runners\NodePayload(
+                        nodeId: $raw['node_id'],
+                        nodeType: $raw['node_type'],
+                        nodeName: $raw['node_name'],
+                        config: $raw['config'],
+                        inputData: $raw['input_data'],
+                        credentials: $raw['credentials'],
+                        variables: $raw['variables'],
+                        executionMeta: $raw['execution_meta'],
+                        nodeRunKey: $raw['node_run_key'],
+                    );
 
-                if ($handler === null) {
-                    return [
-                        'status' => 'failed',
-                        'output' => null,
-                        'error' => ['message' => "Unknown node type [{$payload->nodeType}].", 'code' => 'UNKNOWN_TYPE'],
-                        'duration_ms' => 0,
-                        'active_branches' => null,
-                        'loop_items' => null,
-                    ];
+                    $handler = \App\Engine\NodeRegistry::handler($payload->nodeType);
+
+                    if ($handler === null) {
+                        $results[$payload->nodeId] = [
+                            'status' => 'failed',
+                            'output' => null,
+                            'error' => ['message' => "Unknown node type [{$payload->nodeType}].", 'code' => 'UNKNOWN_TYPE'],
+                            'duration_ms' => 0,
+                            'active_branches' => null,
+                            'loop_items' => null,
+                        ];
+
+                        continue;
+                    }
+
+                    try {
+                        $result = $handler->handle($payload);
+                        $results[$payload->nodeId] = $result->toArray();
+                    } catch (\Throwable $e) {
+                        $results[$payload->nodeId] = [
+                            'status' => 'failed',
+                            'output' => null,
+                            'error' => ['message' => $e->getMessage(), 'code' => 'NODE_EXECUTION_ERROR'],
+                            'duration_ms' => 0,
+                            'active_branches' => null,
+                            'loop_items' => null,
+                        ];
+                    }
                 }
 
-                try {
-                    $result = $handler->handle($payload);
-
-                    return $result->toArray();
-                } catch (\Throwable $e) {
-                    return [
-                        'status' => 'failed',
-                        'output' => null,
-                        'error' => ['message' => $e->getMessage(), 'code' => 'NODE_EXECUTION_ERROR'],
-                        'duration_ms' => 0,
-                        'active_branches' => null,
-                        'loop_items' => null,
-                    ];
-                }
+                return $results;
             };
         }
 
         try {
-            $rawResults = Concurrency::driver('process')->run($tasks);
+            $rawBatches = Concurrency::driver('process')->run($tasks);
         } catch (\Throwable $e) {
             // If concurrency fails entirely, fall back to sequential execution
             return $this->fallbackSequential($chunk, $payloads);
@@ -165,9 +186,10 @@ class AsyncRunner
 
         $results = [];
 
-        foreach ($rawResults as $index => $rawResult) {
-            $nodeId = $indexToNodeId[$index];
-            $results[$nodeId] = NodeResult::fromArray($rawResult);
+        foreach ($rawBatches as $batchResults) {
+            foreach ($batchResults as $nodeId => $rawResult) {
+                $results[$nodeId] = NodeResult::fromArray($rawResult);
+            }
         }
 
         return $results;

@@ -19,7 +19,7 @@ class RunContext
     /** @var array<string, NodeResult> nodeId → result */
     private array $completedNodes = [];
 
-    /** @var list<string> Node IDs ready for execution */
+    /** @var array<string, true> Node IDs ready for execution */
     private array $readyQueue = [];
 
     /** @var array<string, mixed> Workspace and runtime variables */
@@ -27,6 +27,9 @@ class RunContext
 
     /** @var list<array<string, mixed>> Stack frames for loops and sub-workflows */
     private array $frameStack = [];
+
+    /** @var array<string, array{output: array<string, mixed>}> Cached node outputs for expression context */
+    private array $expressionNodeOutputs = [];
 
     private int $completedSinceFlush = 0;
 
@@ -38,6 +41,9 @@ class RunContext
 
     /** @var array<string, \App\Models\Credential> nodeId → Credential instance */
     private array $credentials;
+
+    /** @var array<int, true> Credential IDs that have already been refreshed */
+    private array $refreshedCredentialIds = [];
 
     /**
      * @param  array<string, mixed>  $variables
@@ -58,7 +64,7 @@ class RunContext
 
         // Seed the ready queue with start nodes
         foreach ($graph->startNodes as $nodeId) {
-            $this->readyQueue[] = $nodeId;
+            $this->readyQueue[$nodeId] = true;
         }
     }
 
@@ -67,7 +73,49 @@ class RunContext
      */
     public function getCredential(string $nodeId): ?\App\Models\Credential
     {
-        return $this->credentials[$nodeId] ?? null;
+        $credential = $this->credentials[$nodeId] ?? null;
+
+        if ($credential === null) {
+            return null;
+        }
+
+        if ($this->shouldRefreshCredential($credential)) {
+            $credential = $this->refreshCredential($credential);
+            $this->credentials[$nodeId] = $credential;
+        }
+
+        return $credential;
+    }
+
+    private function shouldRefreshCredential(\App\Models\Credential $credential): bool
+    {
+        if (isset($this->refreshedCredentialIds[$credential->id])) {
+            return false;
+        }
+
+        return $credential->expires_at
+            && $credential->expires_at->copy()->subMinutes(5)->isPast();
+    }
+
+    private function refreshCredential(\App\Models\Credential $credential): \App\Models\Credential
+    {
+        $this->refreshedCredentialIds[$credential->id] = true;
+
+        try {
+            $oauthService = app(\App\Services\OAuthCredentialFlowService::class);
+            $refreshed = $oauthService->refreshToken($credential);
+
+            if ($refreshed) {
+                return $refreshed;
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                "Could not refresh token for credential {$credential->id}",
+                ['error' => $e->getMessage()],
+            );
+        }
+
+        return $credential;
     }
 
     /**
@@ -77,7 +125,7 @@ class RunContext
      */
     public function getReadyNodes(): array
     {
-        return $this->readyQueue;
+        return array_keys($this->readyQueue);
     }
 
     /**
@@ -107,14 +155,12 @@ class RunContext
      */
     public function complete(string $nodeId, NodeResult $result, ?array $activeBranches = null): void
     {
-        // Remove from ready queue
-        $this->readyQueue = array_values(array_filter(
-            $this->readyQueue,
-            fn (string $id) => $id !== $nodeId,
-        ));
+        // Remove from ready queue — was O(n), now O(1)
+        unset($this->readyQueue[$nodeId]);
 
         // Store result
         $this->completedNodes[$nodeId] = $result;
+        $this->expressionNodeOutputs[$nodeId] = ['output' => $result->output ?? []];
 
         // Store output in buffer
         $this->outputs->store($nodeId, $result->output);
@@ -133,7 +179,7 @@ class RunContext
             $this->remainingInDegree[$successorId]--;
 
             if ($this->remainingInDegree[$successorId] <= 0) {
-                $this->readyQueue[] = $successorId;
+                $this->readyQueue[$successorId] = true;
             }
         }
 
@@ -150,10 +196,7 @@ class RunContext
      */
     public function skip(string $nodeId): void
     {
-        $this->readyQueue = array_values(array_filter(
-            $this->readyQueue,
-            fn (string $id) => $id !== $nodeId,
-        ));
+        unset($this->readyQueue[$nodeId]);
 
         $this->completedNodes[$nodeId] = NodeResult::skipped();
         $this->completedSinceFlush++;
@@ -213,11 +256,7 @@ class RunContext
      */
     public function buildExpressionContext(): array
     {
-        $nodeOutputs = [];
-
-        foreach ($this->completedNodes as $nodeId => $result) {
-            $nodeOutputs[$nodeId] = ['output' => $result->output ?? []];
-        }
+        $nodeOutputs = $this->expressionNodeOutputs;
 
         $currentFrame = end($this->frameStack) ?: [];
 
@@ -247,8 +286,11 @@ class RunContext
     /**
      * Whether the BatchWriter should flush accumulated rows.
      */
-    public function shouldFlush(int $threshold = 25, float $intervalSeconds = 0.5): bool
+    public function shouldFlush(): bool
     {
+        $threshold = (int) config('workflow.batch_flush_threshold', 100);
+        $intervalSeconds = (float) config('workflow.batch_flush_interval', 1.0);
+
         if ($this->completedSinceFlush >= $threshold) {
             return true;
         }
@@ -354,7 +396,7 @@ class RunContext
         }
 
         return [
-            'ready_queue' => $this->readyQueue,
+            'ready_queue' => array_keys($this->readyQueue),
             'remaining_in_degree' => $this->remainingInDegree,
             'completed_nodes' => $completedSerialized,
             'variables' => $this->variables,
@@ -386,7 +428,7 @@ class RunContext
         );
 
         // Restore internal state
-        $instance->readyQueue = $frontierState['ready_queue'] ?? [];
+        $instance->readyQueue = array_fill_keys($frontierState['ready_queue'] ?? [], true);
         $instance->remainingInDegree = $frontierState['remaining_in_degree'] ?? $graph->inDegree;
         $instance->nextSequence = $frontierState['next_sequence'] ?? 1;
         $instance->frameStack = $frontierState['frame_stack'] ?? [];
@@ -394,6 +436,10 @@ class RunContext
         // Restore completed nodes from serialized NodeResults
         foreach ($frontierState['completed_nodes'] ?? [] as $nodeId => $resultData) {
             $instance->completedNodes[$nodeId] = NodeResult::fromArray($resultData);
+        }
+
+        foreach ($instance->completedNodes as $nodeId => $result) {
+            $instance->expressionNodeOutputs[$nodeId] = ['output' => $result->output ?? []];
         }
 
         return $instance;
