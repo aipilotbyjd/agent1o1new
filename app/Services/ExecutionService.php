@@ -147,6 +147,46 @@ class ExecutionService
         ];
     }
 
+    /**
+     * Replay a completed execution using its captured snapshot.
+     */
+    public function replay(Execution $execution, User $user): Execution
+    {
+        $replayPack = $execution->replayPack;
+
+        if (! $replayPack) {
+            throw ApiException::unprocessable('No replay pack found for this execution.');
+        }
+
+        if ($execution->status->isActive()) {
+            throw ApiException::unprocessable('Cannot replay an active execution.');
+        }
+
+        $workflow = $execution->workflow;
+
+        $replayExecution = Execution::create([
+            'workflow_id' => $workflow->id,
+            'workspace_id' => $execution->workspace_id,
+            'status' => ExecutionStatus::Pending,
+            'mode' => ExecutionMode::Replay,
+            'triggered_by' => $user->id,
+            'trigger_data' => $replayPack->trigger_snapshot,
+            'replay_of_execution_id' => $execution->id,
+            'is_deterministic_replay' => true,
+            'attempt' => 1,
+            'max_attempts' => 1,
+            'ip_address' => request()?->ip(),
+            'user_agent' => request()?->userAgent(),
+        ]);
+
+        $this->captureReplayPack($replayExecution, $workflow);
+
+        ExecuteWorkflowJob::dispatch($replayExecution)
+            ->onQueue('workflows-default');
+
+        return $replayExecution;
+    }
+
     private function captureReplayPack(Execution $execution, Workflow $workflow): void
     {
         $version = $workflow->currentVersion;

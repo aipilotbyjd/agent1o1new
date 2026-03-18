@@ -11,4 +11,5 @@ enum ExecutionMode: string
     case Scheduled = 'scheduled';
     case Polling = 'polling';
     case SubWorkflow = 'sub_workflow';
+    case Replay = 'replay';
 }

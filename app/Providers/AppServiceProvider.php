@@ -27,13 +27,35 @@ class AppServiceProvider extends ServiceProvider
     {
         Password::defaults(fn () => Password::min(8)->mixedCase()->numbers()->symbols());
 
-        RateLimiter::for('auth', function (Request $request) {
-            return Limit::perMinute(5)->by($request->ip());
-        });
+        $this->configureRateLimiting();
 
         Passport::tokensExpireIn(CarbonInterval::days(15));
         Passport::refreshTokensExpireIn(CarbonInterval::days(30));
         Passport::personalAccessTokensExpireIn(CarbonInterval::months(6));
         Passport::enablePasswordGrant();
+    }
+
+    private function configureRateLimiting(): void
+    {
+        RateLimiter::for('auth', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        RateLimiter::for('workspace-api', function (Request $request) {
+            $userId = $request->user()?->id ?? $request->ip();
+            $workspaceId = $request->route('workspace')?->id ?? 'global';
+
+            return Limit::perMinute(120)->by("{$userId}:{$workspaceId}");
+        });
+
+        RateLimiter::for('execution-trigger', function (Request $request) {
+            $workspaceId = $request->route('workspace')?->id ?? 'global';
+
+            return Limit::perMinute(30)->by("exec:{$workspaceId}");
+        });
+
+        RateLimiter::for('webhook-receive', function (Request $request) {
+            return Limit::perMinute(60)->by('webhook:'.$request->route('uuid'));
+        });
     }
 }

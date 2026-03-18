@@ -194,6 +194,23 @@ class ExecutionController extends Controller
     }
 
     /**
+     * Replay a completed execution using its captured snapshot.
+     */
+    public function replay(Workspace $workspace, Execution $execution): JsonResponse
+    {
+        $this->can(Permission::ExecutionReplay);
+
+        $newExecution = $this->executionService->replay($execution, auth()->user());
+        $newExecution->load(['workflow', 'triggeredBy']);
+
+        return $this->successResponse(
+            'Execution replay triggered successfully.',
+            new ExecutionResource($newExecution),
+            201,
+        );
+    }
+
+    /**
      * Cancel an active execution.
      */
     public function cancel(Workspace $workspace, Execution $execution): JsonResponse

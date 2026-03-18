@@ -24,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
 
+        $middleware->throttleApi('workspace-api');
+
         $middleware->alias([
             'workspace.role' => ResolveWorkspaceRole::class,
             'engine.signature' => VerifyEngineCallbackSignature::class,

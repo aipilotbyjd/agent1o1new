@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\CreditController;
 use App\Http\Controllers\Api\V1\EngineDashboardController;
 use App\Http\Controllers\Api\V1\ExecutionController;
 use App\Http\Controllers\Api\V1\GitSyncController;
+use App\Http\Controllers\Api\V1\GitSyncWebhookController;
 use App\Http\Controllers\Api\V1\InternalEngineController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\JobCallbackController;
@@ -74,7 +75,11 @@ Route::prefix('v1')->as('v1.')->group(function () {
         ->name('verification.verify');
 
     Route::match(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], 'webhook/{uuid}', [WebhookReceiverController::class, 'handle'])
+        ->middleware('throttle:webhook-receive')
         ->name('webhook.receive');
+
+    Route::post('git-sync/webhook/{workspaceSlug}', [GitSyncWebhookController::class, 'handle'])
+        ->name('git-sync.webhook');
 
     // ── Shared Workflows (public viewing) ───────────────────────
     Route::get('shared/{token}', [WorkflowShareController::class, 'viewPublic'])->name('shared.view');
@@ -179,7 +184,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
         */
 
         Route::prefix('workspaces/{workspace}')->as('workspaces.')
-            ->middleware('workspace.role')
+            ->middleware(['workspace.role'])
             ->scopeBindings()
             ->group(function () {
 
@@ -222,7 +227,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
                         Route::post('activate', [WorkflowController::class, 'activate'])->name('activate');
                         Route::post('deactivate', [WorkflowController::class, 'deactivate'])->name('deactivate');
                         Route::post('duplicate', [WorkflowController::class, 'duplicate'])->name('duplicate');
-                        Route::post('execute', [ExecutionController::class, 'store'])->name('execute');
+                        Route::post('execute', [ExecutionController::class, 'store'])->middleware('throttle:execution-trigger')->name('execute');
                         Route::get('executions', [ExecutionController::class, 'workflowExecutions'])->name('executions.index');
                         Route::post('webhook', [WebhookController::class, 'store'])->name('webhook.store');
                         Route::post('polling-trigger', [PollingTriggerController::class, 'store'])->name('polling-trigger.store');
@@ -293,6 +298,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('{execution}/logs', [ExecutionController::class, 'logs'])->name('logs');
                     Route::post('{execution}/retry', [ExecutionController::class, 'retry'])->name('retry');
                     Route::post('{execution}/cancel', [ExecutionController::class, 'cancel'])->name('cancel');
+                    Route::post('{execution}/replay', [ExecutionController::class, 'replay'])->name('replay');
                     Route::get('{execution}/stream', [SseController::class, 'stream'])->name('stream');
                     Route::post('{execution}/pause-engine', [EngineDashboardController::class, 'pauseExecution'])->name('pause-engine');
                     Route::post('{execution}/resume-engine', [EngineDashboardController::class, 'resumeExecution'])->name('resume-engine');
@@ -389,6 +395,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
                 Route::prefix('git-sync')->as('git-sync.')->group(function () {
                     Route::get('status', [GitSyncController::class, 'status'])->name('status');
                     Route::post('export', [GitSyncController::class, 'export'])->name('export');
+                    Route::post('import', [GitSyncController::class, 'import'])->name('import');
                 });
 
                 // ── Shared Workflow Clone ────────────────────────────
