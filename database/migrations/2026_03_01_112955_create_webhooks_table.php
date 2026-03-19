@@ -25,6 +25,9 @@ return new class extends Migration
             $table->unsignedBigInteger('call_count')->default(0);
             $table->timestamp('last_called_at')->nullable();
             $table->timestamps();
+
+            $table->index('workspace_id');
+            $table->index('is_active');
         });
     }
 

@@ -29,6 +29,8 @@ return new class extends Migration
 
             $table->unique(['execution_id', 'node_run_key'], 'exec_node_run_unique');
             $table->index(['execution_id', 'sequence']);
+            $table->index('status');
+            $table->index('node_type');
         });
     }
 

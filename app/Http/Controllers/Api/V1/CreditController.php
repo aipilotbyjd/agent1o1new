@@ -19,6 +19,11 @@ class CreditController extends Controller
      */
     public function balance(Workspace $workspace, CreditMeterService $creditMeter): JsonResponse
     {
+        $workspace->load([
+            'subscriptions' => fn ($q) => $q->with('plan')->where('status', 'active')->latest(),
+            'usagePeriods' => fn ($q) => $q->where('is_current', true),
+        ]);
+
         return $this->successResponse(
             'Credit balance retrieved successfully.',
             new CreditBalanceResource($workspace)

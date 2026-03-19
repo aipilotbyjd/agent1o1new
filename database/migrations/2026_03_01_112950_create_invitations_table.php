@@ -18,6 +18,10 @@ return new class extends Migration
             $table->timestamp('accepted_at')->nullable();
             $table->timestamp('expires_at');
             $table->timestamps();
+
+            $table->index('workspace_id');
+            $table->index('invited_by');
+            $table->index('email');
         });
     }
 

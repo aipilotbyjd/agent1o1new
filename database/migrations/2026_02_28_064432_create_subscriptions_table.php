@@ -23,6 +23,9 @@ return new class extends Migration
             $table->timestamp('current_period_end')->nullable();
             $table->timestamp('canceled_at')->nullable();
             $table->timestamps();
+
+            $table->index('plan_id');
+            $table->index('status');
         });
     }
 

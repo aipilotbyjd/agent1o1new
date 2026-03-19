@@ -21,6 +21,8 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->unique(['workspace_id', 'name', 'deleted_at']);
+            $table->index('created_by');
+            $table->index('type');
         });
     }
 

@@ -14,8 +14,8 @@ class CreditBalanceResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $subscription = $this->subscriptions()->with('plan')->where('status', 'active')->latest()->first();
-        $period = $this->usagePeriods()->where('is_current', true)->first();
+        $subscription = $this->whenLoaded('subscriptions', fn () => $this->subscriptions->first());
+        $period = $this->whenLoaded('usagePeriods', fn () => $this->usagePeriods->first());
 
         return [
             'workspace_id' => $this->id,

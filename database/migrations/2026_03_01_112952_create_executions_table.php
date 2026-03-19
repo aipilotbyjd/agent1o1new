@@ -39,6 +39,10 @@ return new class extends Migration
             $table->index(['workspace_id', 'status']);
             $table->index(['workflow_id', 'status']);
             $table->index(['workspace_id', 'created_at']);
+            $table->index('triggered_by');
+            $table->index('parent_execution_id');
+            $table->index('started_at');
+            $table->index('finished_at');
         });
     }
 

@@ -24,6 +24,10 @@ return new class extends Migration
             $table->decimal('success_rate', 5, 2)->default(0.00);
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index('workspace_id');
+            $table->index('created_by');
+            $table->index('is_active');
         });
     }
 
