@@ -6,6 +6,8 @@ use App\Enums\ExecutionMode;
 use App\Enums\ExecutionStatus;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Execution\BulkDeleteExecutionRequest;
+use App\Http\Requests\Api\V1\Execution\CompareExecutionRequest;
 use App\Http\Requests\Api\V1\Execution\TriggerExecutionRequest;
 use App\Http\Resources\Api\V1\ExecutionLogResource;
 use App\Http\Resources\Api\V1\ExecutionNodeResource;
@@ -257,14 +259,9 @@ class ExecutionController extends Controller
     /**
      * Bulk delete executions.
      */
-    public function bulkDestroy(Request $request, Workspace $workspace): JsonResponse
+    public function bulkDestroy(BulkDeleteExecutionRequest $request, Workspace $workspace): JsonResponse
     {
-        $this->can(Permission::ExecutionDelete);
-
-        $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1', 'max:100'],
-            'ids.*' => ['integer'],
-        ]);
+        $validated = $request->validated();
 
         $deleted = $workspace->executions()
             ->whereIn('id', $validated['ids'])
@@ -277,14 +274,9 @@ class ExecutionController extends Controller
     /**
      * Compare two executions side by side.
      */
-    public function compare(Request $request, Workspace $workspace): JsonResponse
+    public function compare(CompareExecutionRequest $request, Workspace $workspace): JsonResponse
     {
-        $this->can(Permission::ExecutionView);
-
-        $validated = $request->validate([
-            'execution_a' => ['required', 'integer'],
-            'execution_b' => ['required', 'integer'],
-        ]);
+        $validated = $request->validated();
 
         $executionA = $workspace->executions()
             ->with(['nodes', 'workflow'])

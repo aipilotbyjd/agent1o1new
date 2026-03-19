@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Workflow\StoreWorkflowShareRequest;
+use App\Http\Requests\Api\V1\Workflow\UpdateWorkflowShareRequest;
 use App\Http\Resources\Api\V1\WorkflowResource;
 use App\Http\Resources\Api\V1\WorkflowShareResource;
 use App\Models\Workflow;
@@ -35,16 +37,9 @@ class WorkflowShareController extends Controller
     /**
      * Create a share link for a workflow.
      */
-    public function store(Request $request, Workspace $workspace, Workflow $workflow): JsonResponse
+    public function store(StoreWorkflowShareRequest $request, Workspace $workspace, Workflow $workflow): JsonResponse
     {
-        $this->can(Permission::WorkflowShare);
-
-        $validated = $request->validate([
-            'is_public' => ['nullable', 'boolean'],
-            'allow_clone' => ['nullable', 'boolean'],
-            'password' => ['nullable', 'string', 'min:6'],
-            'expires_at' => ['nullable', 'date', 'after:now'],
-        ]);
+        $validated = $request->validated();
 
         $share = $this->shareService->create(
             $workspace,
@@ -65,16 +60,9 @@ class WorkflowShareController extends Controller
     /**
      * Update a share link.
      */
-    public function update(Request $request, Workspace $workspace, Workflow $workflow, WorkflowShare $share): JsonResponse
+    public function update(UpdateWorkflowShareRequest $request, Workspace $workspace, Workflow $workflow, WorkflowShare $share): JsonResponse
     {
-        $this->can(Permission::WorkflowShare);
-
-        $validated = $request->validate([
-            'is_public' => ['nullable', 'boolean'],
-            'allow_clone' => ['nullable', 'boolean'],
-            'password' => ['nullable', 'string', 'min:6'],
-            'expires_at' => ['nullable', 'date', 'after:now'],
-        ]);
+        $validated = $request->validated();
 
         $share = $this->shareService->update($share, $validated);
         $share->load('sharedBy');

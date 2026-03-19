@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Tag\AttachTagWorkflowsRequest;
 use App\Http\Requests\Api\V1\Tag\StoreTagRequest;
 use App\Http\Requests\Api\V1\Tag\UpdateTagRequest;
 use App\Http\Resources\Api\V1\TagResource;
@@ -124,14 +125,9 @@ class TagController extends Controller
     /**
      * Detach workflows from a tag.
      */
-    public function detachWorkflows(Request $request, Workspace $workspace, Tag $tag): JsonResponse
+    public function detachWorkflows(AttachTagWorkflowsRequest $request, Workspace $workspace, Tag $tag): JsonResponse
     {
-        $this->can(Permission::TagUpdate);
-
-        $validated = $request->validate([
-            'workflow_ids' => ['required', 'array'],
-            'workflow_ids.*' => ['integer', 'exists:workflows,id'],
-        ]);
+        $validated = $request->validated();
 
         $this->tagService->detachWorkflows($tag, $validated['workflow_ids']);
 

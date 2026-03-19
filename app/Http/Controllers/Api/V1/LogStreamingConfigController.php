@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\LogStreaming\StoreLogStreamingConfigRequest;
+use App\Http\Requests\Api\V1\LogStreaming\UpdateLogStreamingConfigRequest;
 use App\Http\Resources\Api\V1\LogStreamingConfigResource;
 use App\Models\LogStreamingConfig;
 use App\Models\Workspace;
@@ -38,19 +40,9 @@ class LogStreamingConfigController extends Controller
     /**
      * Create a log streaming configuration.
      */
-    public function store(Request $request, Workspace $workspace): JsonResponse
+    public function store(StoreLogStreamingConfigRequest $request, Workspace $workspace): JsonResponse
     {
-        $this->can(Permission::WorkspaceUpdate);
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'destination_type' => ['required', 'string', 'in:webhook,s3,datadog,elasticsearch,syslog'],
-            'destination_config' => ['required', 'array'],
-            'event_types' => ['nullable', 'array'],
-            'event_types.*' => ['string', 'in:execution.completed,execution.failed,execution.started,execution.cancelled,node.completed,node.failed'],
-            'is_active' => ['nullable', 'boolean'],
-            'include_node_data' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $config = $this->logStreamingService->create(
             $workspace,
@@ -85,19 +77,9 @@ class LogStreamingConfigController extends Controller
     /**
      * Update a log streaming configuration.
      */
-    public function update(Request $request, Workspace $workspace, LogStreamingConfig $logStreamingConfig): JsonResponse
+    public function update(UpdateLogStreamingConfigRequest $request, Workspace $workspace, LogStreamingConfig $logStreamingConfig): JsonResponse
     {
-        $this->can(Permission::WorkspaceUpdate);
-
-        $validated = $request->validate([
-            'name' => ['nullable', 'string', 'max:255'],
-            'destination_type' => ['nullable', 'string', 'in:webhook,s3,datadog,elasticsearch,syslog'],
-            'destination_config' => ['nullable', 'array'],
-            'event_types' => ['nullable', 'array'],
-            'event_types.*' => ['string', 'in:execution.completed,execution.failed,execution.started,execution.cancelled,node.completed,node.failed'],
-            'is_active' => ['nullable', 'boolean'],
-            'include_node_data' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $config = $this->logStreamingService->update($logStreamingConfig, $validated);
         $config->load('creator');

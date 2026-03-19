@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Workflow\DiffWorkflowVersionRequest;
 use App\Http\Requests\Api\V1\Workflow\StoreWorkflowVersionRequest;
 use App\Http\Resources\Api\V1\WorkflowVersionResource;
 use App\Models\Workflow;
@@ -110,17 +111,12 @@ class WorkflowVersionController extends Controller
     /**
      * Diff two versions of a workflow.
      */
-    public function diff(Request $request, Workspace $workspace, Workflow $workflow): JsonResponse
+    public function diff(DiffWorkflowVersionRequest $request, Workspace $workspace, Workflow $workflow): JsonResponse
     {
-        $this->can(Permission::VersionView);
+        $validated = $request->validated();
 
-        $request->validate([
-            'from' => ['required', 'integer'],
-            'to' => ['required', 'integer'],
-        ]);
-
-        $from = $workflow->versions()->findOrFail($request->integer('from'));
-        $to = $workflow->versions()->findOrFail($request->integer('to'));
+        $from = $workflow->versions()->findOrFail($validated['from']);
+        $to = $workflow->versions()->findOrFail($validated['to']);
 
         $diff = $this->versionService->diff($from, $to);
 
