@@ -18,7 +18,9 @@ Do not make assumptions on important decisions — get clarification first.
 
 ## Workflow Steps
 
-### [ ] Step: Implementation
+### [x] Step: Implementation
+
+Added a code-based workflow engine guide in `docs/WORKFLOW_ENGINE_GUIDE.md` that explains the real execution path, all trigger entry points, runtime orchestration, persistence, suspension/resume flow, and the remaining legacy Go-engine compatibility surfaces. Added a focused Pest test in `tests/Unit/WorkflowEngineDocumentationTest.php` to verify the new guide references the key engine classes and entry points, and updated `.gitignore` before installing local dependencies needed for verification.
 
 **Debug requests, questions, and investigations:** answer or investigate first. Do not create a plan upfront — the user needs an answer, not a plan. A plan may become relevant later once the investigation reveals what needs to change.
 
