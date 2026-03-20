@@ -9,6 +9,10 @@ use App\Models\Workspace;
 
 class CredentialService
 {
+    public function __construct(
+        private CredentialMaskingService $maskingService
+    ) {}
+
     /**
      * Create a new credential in the workspace.
      *
@@ -31,7 +35,9 @@ class CredentialService
     public function update(Credential $credential, array $data): Credential
     {
         if (isset($data['data'])) {
-            $data['data'] = json_encode($data['data']);
+            $existingData = json_decode($credential->data, true) ?? [];
+            $mergedData = $this->maskingService->mergeData($existingData, $data['data'], $credential->type);
+            $data['data'] = json_encode($mergedData);
         }
 
         $credential->update($data);
