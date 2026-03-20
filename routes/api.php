@@ -9,9 +9,8 @@
 |
 |   1. Public        — No auth required (health, verify-email, webhooks)
 |   2. Guest         — Auth routes for unauthenticated users (login, register)
-|   3. Engine        — HMAC-signed requests from Go execution engine
-|   4. Authenticated — Requires valid access token (auth:api)
-|   5. Workspace     — Requires membership + resolves role/permissions ONCE
+|   3. Authenticated — Requires valid access token (auth:api)
+|   4. Workspace     — Requires membership + resolves role/permissions ONCE
 |                      via 'workspace.role' middleware. All nested models are
 |                      scoped to the workspace via scopeBindings().
 |
@@ -27,13 +26,10 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CredentialController;
 use App\Http\Controllers\Api\V1\CredentialTypeController;
 use App\Http\Controllers\Api\V1\CreditController;
-use App\Http\Controllers\Api\V1\EngineDashboardController;
 use App\Http\Controllers\Api\V1\ExecutionController;
 use App\Http\Controllers\Api\V1\GitSyncController;
 use App\Http\Controllers\Api\V1\GitSyncWebhookController;
-use App\Http\Controllers\Api\V1\InternalEngineController;
 use App\Http\Controllers\Api\V1\InvitationController;
-use App\Http\Controllers\Api\V1\JobCallbackController;
 use App\Http\Controllers\Api\V1\LogStreamingConfigController;
 use App\Http\Controllers\Api\V1\NodeCategoryController;
 use App\Http\Controllers\Api\V1\NodeController;
@@ -103,30 +99,6 @@ Route::prefix('v1')->as('v1.')->group(function () {
             Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
             Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('reset-password');
         });
-
-    /*
-    |----------------------------------------------------------------------
-    | Engine Callbacks — HMAC-signed requests from Go execution engine
-    |----------------------------------------------------------------------
-    */
-
-    Route::prefix('jobs')->as('jobs.')->middleware('engine.signature')->group(function () {
-        Route::post('callback', [JobCallbackController::class, 'handle'])->name('callback');
-        Route::post('progress', [JobCallbackController::class, 'progress'])->name('progress');
-    });
-
-    /*
-    |----------------------------------------------------------------------
-    | Internal Engine API — HMAC-signed requests from Go engine
-    |----------------------------------------------------------------------
-    | Used for just-in-time credential fetching and workflow definition
-    | caching. Keeps secrets out of Redis and reduces message sizes.
-    */
-
-    Route::prefix('internal')->as('internal.')->middleware('engine.signature')->group(function () {
-        Route::post('credentials', [InternalEngineController::class, 'credential'])->name('credentials');
-        Route::post('workflows/definition', [InternalEngineController::class, 'workflowDefinition'])->name('workflow-definition');
-    });
 
     /*
     |----------------------------------------------------------------------
@@ -300,8 +272,6 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::post('{execution}/cancel', [ExecutionController::class, 'cancel'])->name('cancel');
                     Route::post('{execution}/replay', [ExecutionController::class, 'replay'])->name('replay');
                     Route::get('{execution}/stream', [SseController::class, 'stream'])->name('stream');
-                    Route::post('{execution}/pause-engine', [EngineDashboardController::class, 'pauseExecution'])->name('pause-engine');
-                    Route::post('{execution}/resume-engine', [EngineDashboardController::class, 'resumeExecution'])->name('resume-engine');
                 });
 
                 // ── Webhooks ─────────────────────────────────────────
@@ -377,17 +347,6 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::get('{logStreamingConfig}', [LogStreamingConfigController::class, 'show'])->name('show');
                     Route::put('{logStreamingConfig}', [LogStreamingConfigController::class, 'update'])->name('update');
                     Route::delete('{logStreamingConfig}', [LogStreamingConfigController::class, 'destroy'])->name('destroy');
-                });
-
-                // ── Engine Dashboard (Health, DLQ, Cache) ──────────
-
-                Route::prefix('engine')->as('engine.')->group(function () {
-                    Route::get('health', [EngineDashboardController::class, 'health'])->name('health');
-                    Route::get('partitions', [EngineDashboardController::class, 'partitions'])->name('partitions');
-                    Route::get('dlq', [EngineDashboardController::class, 'dlq'])->name('dlq');
-                    Route::post('dlq/{messageId}/replay', [EngineDashboardController::class, 'dlqReplay'])->name('dlq.replay');
-                    Route::get('cache', [EngineDashboardController::class, 'cache'])->name('cache');
-                    Route::post('cache/invalidate', [EngineDashboardController::class, 'cacheInvalidate'])->name('cache.invalidate');
                 });
 
                 // ── Git Sync ────────────────────────────────────────

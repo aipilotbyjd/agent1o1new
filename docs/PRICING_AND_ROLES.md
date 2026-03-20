@@ -50,7 +50,7 @@ Workflow triggered
   → Check: does workspace have enough credits? (Redis fast check)
   → If no → block execution → return 402 with credits_remaining
   → If yes → allow execution
-  → Go engine runs workflow
+  → ExecuteWorkflowJob dispatches the native WorkflowEngine
   → Execution completes
   → Count nodes by type → calculate total cost
   → Deduct from Redis immediately (atomic)

@@ -103,9 +103,6 @@ class ExecutionService
 
         $execution->cancel();
 
-        // Signal the Go engine to stop this execution
-        $this->publishCancelSignal($execution);
-
         return $execution->refresh();
     }
 
@@ -215,28 +212,5 @@ class ExecutionService
             'captured_at' => now(),
             'expires_at' => now()->addDays(30),
         ]);
-    }
-
-    private function publishCancelSignal(Execution $execution): void
-    {
-        $jobStatus = $execution->jobStatus;
-        if (! $jobStatus) {
-            return;
-        }
-
-        try {
-            $payload = json_encode([
-                'action' => 'cancel',
-                'job_id' => $jobStatus->job_id,
-                'execution_id' => $execution->id,
-                'timestamp' => now()->toIso8601String(),
-            ]);
-
-            $streamKey = "linkflow:jobs:cancel:{$jobStatus->partition}";
-            \Illuminate\Support\Facades\Redis::client()->xadd($streamKey, '*', ['payload' => $payload]);
-            \Illuminate\Support\Facades\Redis::client()->expire($streamKey, 300);
-        } catch (\Throwable) {
-            // Cancel signal is best-effort
-        }
     }
 }
