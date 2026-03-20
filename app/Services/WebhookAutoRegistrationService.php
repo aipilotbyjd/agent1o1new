@@ -300,7 +300,7 @@ class WebhookAutoRegistrationService
      */
     private function buildCallbackUrl(string $uuid): string
     {
-        $baseUrl = config('services.engine.api_url', config('app.url'));
+        $baseUrl = config('app.url');
 
         return rtrim($baseUrl, '/').'/api/v1/webhook/'.$uuid;
     }

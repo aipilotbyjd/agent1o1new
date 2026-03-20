@@ -27,15 +27,7 @@ Trigger source
 -> Execution completed, failed, cancelled, or waiting
 ```
 
-There are still legacy Go-engine compatibility pieces in the app:
-
-- [`JobCallbackController`](../app/Http/Controllers/Api/V1/JobCallbackController.php)
-- [`InternalEngineController`](../app/Http/Controllers/Api/V1/InternalEngineController.php)
-- [`VerifyEngineCallbackSignature`](../app/Http/Middleware/VerifyEngineCallbackSignature.php)
-- [`EngineDashboardController`](../app/Http/Controllers/Api/V1/EngineDashboardController.php)
-- [`EngineHealthService`](../app/Services/EngineHealthService.php)
-
-Those files still support or monitor the older external-engine flow. They are not the primary path used by [`ExecuteWorkflowJob`](../app/Jobs/ExecuteWorkflowJob.php) anymore.
+The external-engine compatibility layer has been removed.
 
 ## 2. Every place that can start a workflow
 
@@ -571,7 +563,7 @@ The engine publishes events like:
 - `execution.failed`
 - `execution.cancelled`
 
-Legacy Go-engine callbacks in [`JobCallbackController`](../app/Http/Controllers/Api/V1/JobCallbackController.php) publish into the same Redis pattern.
+This Redis stream + pub/sub pattern is now produced directly by the native engine only.
 
 ## 16. Activation side effects: external webhook auto-registration
 
@@ -592,33 +584,7 @@ Today that registry supports:
 - `github`
 - `stripe`
 
-## 17. Legacy and mixed-state pieces you should know about
-
-This repository still contains both the native Laravel engine and legacy external-engine code paths.
-
-### Native path
-
-These files describe the current in-process engine:
-
-- [`app/Engine/`](../app/Engine)
-- [`app/Services/ExecutionService.php`](../app/Services/ExecutionService.php)
-- [`app/Jobs/ExecuteWorkflowJob.php`](../app/Jobs/ExecuteWorkflowJob.php)
-- [`app/Jobs/ResumeWorkflowJob.php`](../app/Jobs/ResumeWorkflowJob.php)
-
-### Legacy/compatibility path
-
-These files still assume an external engine exists:
-
-- [`JobCallbackController`](../app/Http/Controllers/Api/V1/JobCallbackController.php)
-- [`InternalEngineController`](../app/Http/Controllers/Api/V1/InternalEngineController.php)
-- [`EngineDashboardController`](../app/Http/Controllers/Api/V1/EngineDashboardController.php)
-- [`EngineHealthService`](../app/Services/EngineHealthService.php)
-- [`ExecutionService::publishCancelSignal()`](../app/Services/ExecutionService.php)
-- [`VerifyEngineCallbackSignature`](../app/Http/Middleware/VerifyEngineCallbackSignature.php)
-
-That mixed state matters because if you are debugging "why do I still see engine callback routes?", the answer is: compatibility code still exists even though the main execution path is now internal.
-
-## 18. Best files to read if you want to understand the engine quickly
+## 17. Best files to read if you want to understand the engine quickly
 
 Read these in order:
 
@@ -633,7 +599,7 @@ Read these in order:
 9. [`app/Engine/Persistence/BatchWriter.php`](../app/Engine/Persistence/BatchWriter.php)
 10. [`app/Engine/Persistence/CheckpointStore.php`](../app/Engine/Persistence/CheckpointStore.php)
 
-## 19. Best executable tests to read
+## 18. Best executable tests to read
 
 These tests explain the system with runnable examples:
 
@@ -652,7 +618,7 @@ These tests explain the system with runnable examples:
   - checkpoint persistence
   - resume flow
 
-## 20. One-page mental model
+## 19. One-page mental model
 
 If you want the simplest correct mental model, use this:
 

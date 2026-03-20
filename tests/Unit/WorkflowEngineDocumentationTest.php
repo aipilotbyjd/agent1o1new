@@ -16,6 +16,5 @@ it('documents the workflow engine execution path and entry points', function () 
         ->toContain('WebhookReceiverController')
         ->toContain('PollTriggersCommand')
         ->toContain('ScheduleCronWorkflows')
-        ->toContain('JobCallbackController')
-        ->toContain('InternalEngineController');
+        ->toContain('The external-engine compatibility layer has been removed.');
 });

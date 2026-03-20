@@ -83,9 +83,8 @@ Workflow triggered
   → PlanEnforcementService::checkCredits() — Redis fast check
   → If insufficient → block execution → 402 with credits_remaining
   → If sufficient → allow execution
-  → Go engine runs workflow
-  → Engine sends callback to JobCallbackController
-  → Nodes upserted, execution status updated
+  → ExecuteWorkflowJob dispatches the native WorkflowEngine
+  → WorkflowEngine runs nodes, flushes execution_nodes in batches, and updates execution state directly
   → If completed:
       → CreditMeterService::consume() calculates cost from nodes
       → Deducts from Redis atomically
@@ -275,7 +274,6 @@ Never merge these. A user can have permission to create a webhook, but the works
 ## Idempotency Guarantees
 
 - **Credit charging is idempotent**: If `execution.credits_consumed` is already set, `consume()` returns the existing value without re-charging
-- **Engine callbacks are idempotent**: If `JobStatus` is already terminal, the callback returns success without DB writes
 - **Daily snapshots are idempotent**: Skips if a snapshot already exists for the workspace + date
 
 ---

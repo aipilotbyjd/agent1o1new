@@ -139,14 +139,6 @@ class Execution extends Model
     }
 
     /**
-     * @return HasOne<JobStatus, $this>
-     */
-    public function jobStatus(): HasOne
-    {
-        return $this->hasOne(JobStatus::class);
-    }
-
-    /**
      * @return HasOne<ExecutionCheckpoint, $this>
      */
     public function checkpoint(): HasOne

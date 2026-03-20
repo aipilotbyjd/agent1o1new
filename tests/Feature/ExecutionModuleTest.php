@@ -7,7 +7,6 @@ use App\Jobs\ExecuteWorkflowJob;
 use App\Models\Execution;
 use App\Models\ExecutionLog;
 use App\Models\ExecutionNode;
-use App\Models\JobStatus;
 use App\Models\User;
 use App\Models\Workflow;
 use App\Models\WorkflowVersion;
@@ -52,18 +51,6 @@ function createExecution(Workspace $workspace, Workflow $workflow, User $owner, 
         'triggered_by' => $owner->id,
         ...$overrides,
     ]);
-}
-
-function signCallbackRequest(array $payload): array
-{
-    $timestamp = now()->toIso8601String();
-    $body = json_encode($payload);
-    $signature = hash_hmac('sha256', $timestamp.'.'.$body, 'test-engine-secret');
-
-    return [
-        'X-LinkFlow-Timestamp' => $timestamp,
-        'X-LinkFlow-Signature' => $signature,
-    ];
 }
 
 // ── Trigger Execution ────────────────────────────────────────
@@ -363,166 +350,27 @@ test('non-member cannot access executions', function () {
         ->assertStatus(403);
 });
 
-// ── Engine Callbacks (HMAC-protected) ────────────────────────
+// ── Removed External Engine API Surface ──────────────────────
 
-test('valid HMAC callback processes completion', function () {
-    [$owner, $workspace, $workflow] = setupExecutionWorkspace();
-    $execution = createExecution($workspace, $workflow, $owner, [
-        'status' => ExecutionStatus::Running,
-        'started_at' => now(),
-    ]);
-
-    $callbackToken = bin2hex(random_bytes(32));
-    $jobStatus = JobStatus::create([
-        'job_id' => \Illuminate\Support\Str::uuid()->toString(),
-        'execution_id' => $execution->id,
-        'partition' => 0,
-        'callback_token' => $callbackToken,
-        'status' => 'processing',
-        'progress' => 0,
-    ]);
-
-    $payload = [
-        'job_id' => $jobStatus->job_id,
-        'callback_token' => $callbackToken,
-        'execution_id' => $execution->id,
-        'status' => 'completed',
-        'duration_ms' => 3420,
-        'error' => null,
-        'nodes' => [
-            [
-                'node_id' => 'trigger_1',
-                'node_type' => 'trigger_webhook',
-                'node_name' => 'Webhook Trigger',
-                'status' => 'completed',
-                'output' => ['body' => ['email' => 'test@example.com']],
-                'error' => null,
-                'started_at' => now()->toIso8601String(),
-                'completed_at' => now()->toIso8601String(),
-                'sequence' => 1,
-            ],
-        ],
-    ];
-
-    $headers = signCallbackRequest($payload);
-
-    $response = $this->postJson('/api/v1/jobs/callback', $payload, $headers);
-
-    $response->assertOk()
-        ->assertJsonPath('success', true)
-        ->assertJsonPath('status', 'completed');
-
-    expect($execution->fresh()->status)->toBe(ExecutionStatus::Completed);
-    expect($jobStatus->fresh()->status)->toBe('completed');
-
-    $this->assertDatabaseHas('execution_nodes', [
-        'execution_id' => $execution->id,
-        'node_id' => 'trigger_1',
-        'status' => 'completed',
-    ]);
+test('legacy engine callback endpoints are not registered', function () {
+    $this->postJson('/api/v1/jobs/callback', [])->assertNotFound();
+    $this->postJson('/api/v1/jobs/progress', [])->assertNotFound();
 });
 
-test('invalid HMAC signature returns 403', function () {
-    $payload = [
-        'job_id' => \Illuminate\Support\Str::uuid()->toString(),
-        'callback_token' => bin2hex(random_bytes(32)),
-        'execution_id' => 1,
-        'status' => 'completed',
-    ];
-
-    $response = $this->postJson('/api/v1/jobs/callback', $payload, [
-        'X-LinkFlow-Timestamp' => now()->toIso8601String(),
-        'X-LinkFlow-Signature' => 'invalid-signature-value-that-is-not-valid-at-all-and-should-fail',
-    ]);
-
-    $response->assertStatus(403);
+test('legacy internal engine endpoints are not registered', function () {
+    $this->postJson('/api/v1/internal/credentials', [])->assertNotFound();
+    $this->postJson('/api/v1/internal/workflows/definition', [])->assertNotFound();
 });
 
-test('wrong callback_token returns 401', function () {
+test('legacy workspace engine dashboard endpoints are not registered', function () {
     [$owner, $workspace, $workflow] = setupExecutionWorkspace();
-    $execution = createExecution($workspace, $workflow, $owner, ['status' => ExecutionStatus::Running]);
+    $execution = createExecution($workspace, $workflow, $owner);
 
-    $jobStatus = JobStatus::create([
-        'job_id' => \Illuminate\Support\Str::uuid()->toString(),
-        'execution_id' => $execution->id,
-        'partition' => 0,
-        'callback_token' => bin2hex(random_bytes(32)),
-        'status' => 'processing',
-        'progress' => 0,
-    ]);
+    $this->actingAs($owner, 'api')
+        ->getJson("/api/v1/workspaces/{$workspace->id}/engine/health")
+        ->assertNotFound();
 
-    $wrongToken = bin2hex(random_bytes(32));
-    $payload = [
-        'job_id' => $jobStatus->job_id,
-        'callback_token' => $wrongToken,
-        'execution_id' => $execution->id,
-        'status' => 'completed',
-    ];
-
-    $headers = signCallbackRequest($payload);
-
-    $response = $this->postJson('/api/v1/jobs/callback', $payload, $headers);
-
-    $response->assertStatus(401);
-});
-
-test('idempotent callback returns success without DB writes', function () {
-    [$owner, $workspace, $workflow] = setupExecutionWorkspace();
-    $execution = createExecution($workspace, $workflow, $owner, ['status' => ExecutionStatus::Completed]);
-
-    $callbackToken = bin2hex(random_bytes(32));
-    $jobStatus = JobStatus::create([
-        'job_id' => \Illuminate\Support\Str::uuid()->toString(),
-        'execution_id' => $execution->id,
-        'partition' => 0,
-        'callback_token' => $callbackToken,
-        'status' => 'completed',
-        'progress' => 100,
-    ]);
-
-    $payload = [
-        'job_id' => $jobStatus->job_id,
-        'callback_token' => $callbackToken,
-        'execution_id' => $execution->id,
-        'status' => 'completed',
-        'duration_ms' => 5000,
-    ];
-
-    $headers = signCallbackRequest($payload);
-
-    $response = $this->postJson('/api/v1/jobs/callback', $payload, $headers);
-
-    $response->assertOk()
-        ->assertJsonPath('idempotent', true);
-});
-
-test('progress callback updates job progress', function () {
-    [$owner, $workspace, $workflow] = setupExecutionWorkspace();
-    $execution = createExecution($workspace, $workflow, $owner, ['status' => ExecutionStatus::Running]);
-
-    $callbackToken = bin2hex(random_bytes(32));
-    $jobStatus = JobStatus::create([
-        'job_id' => \Illuminate\Support\Str::uuid()->toString(),
-        'execution_id' => $execution->id,
-        'partition' => 0,
-        'callback_token' => $callbackToken,
-        'status' => 'processing',
-        'progress' => 0,
-    ]);
-
-    $payload = [
-        'job_id' => $jobStatus->job_id,
-        'callback_token' => $callbackToken,
-        'progress' => 45,
-        'current_node' => 'http_request_1',
-    ];
-
-    $headers = signCallbackRequest($payload);
-
-    $response = $this->postJson('/api/v1/jobs/progress', $payload, $headers);
-
-    $response->assertOk()
-        ->assertJsonPath('success', true);
-
-    expect($jobStatus->fresh()->progress)->toBe(45);
+    $this->actingAs($owner, 'api')
+        ->postJson("/api/v1/workspaces/{$workspace->id}/executions/{$execution->id}/pause-engine")
+        ->assertNotFound();
 });
