@@ -29,7 +29,7 @@ class OAuthCredentialFlowService
         }
 
         $stateToken = (string) Str::uuid();
-        $codeVerifier = Str::random(128);
+        $codeVerifier = null;
         $redirectUri = config('app.url').'/api/v1/oauth/callback';
 
         $scopes = $oauthConfig['scopes'] ?? [];
@@ -43,6 +43,7 @@ class OAuthCredentialFlowService
         ];
 
         if (! empty($oauthConfig['use_pkce'])) {
+            $codeVerifier = Str::random(128);
             $codeChallenge = rtrim(strtr(base64_encode(hash('sha256', $codeVerifier, true)), '+/', '-_'), '=');
             $params['code_challenge'] = $codeChallenge;
             $params['code_challenge_method'] = 'S256';
@@ -104,7 +105,9 @@ class OAuthCredentialFlowService
             $tokenPayload['code_verifier'] = $state->code_verifier;
         }
 
-        $response = Http::post($oauthConfig['token_url'], $tokenPayload);
+        $response = Http::asForm()
+            ->acceptJson()
+            ->post($oauthConfig['token_url'], $tokenPayload);
 
         if ($response->failed()) {
             $state->markFailed();
@@ -176,7 +179,9 @@ class OAuthCredentialFlowService
             'client_secret' => $oauthConfig['client_secret'] ?? '',
         ];
 
-        $response = Http::post($oauthConfig['token_url'], $tokenPayload);
+        $response = Http::asForm()
+            ->acceptJson()
+            ->post($oauthConfig['token_url'], $tokenPayload);
 
         if ($response->failed()) {
             \Illuminate\Support\Facades\Log::warning("Failed to refresh OAuth token for credential {$credential->id}", ['response' => $response->body()]);
