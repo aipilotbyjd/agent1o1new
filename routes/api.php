@@ -43,6 +43,7 @@ use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\VariableController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Controllers\Api\V1\WebhookReceiverController;
+use App\Http\Controllers\Api\V1\WorkflowBuilderController;
 use App\Http\Controllers\Api\V1\WorkflowController;
 use App\Http\Controllers\Api\V1\WorkflowImportExportController;
 use App\Http\Controllers\Api\V1\WorkflowShareController;
@@ -191,6 +192,7 @@ Route::prefix('v1')->as('v1.')->group(function () {
                     Route::post('/', [WorkflowController::class, 'store'])->name('store');
 
                     Route::post('import', [WorkflowImportExportController::class, 'import'])->name('import');
+                    Route::post('build', [WorkflowBuilderController::class, 'build'])->name('build');
 
                     Route::prefix('{workflow}')->group(function () {
                         Route::get('/', [WorkflowController::class, 'show'])->name('show');

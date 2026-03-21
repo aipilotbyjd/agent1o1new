@@ -24,6 +24,7 @@ class WorkflowResource extends JsonResource
             'is_active' => $this->is_active,
             'is_locked' => $this->is_locked,
             'current_version_id' => $this->current_version_id,
+            'current_version' => new WorkflowVersionResource($this->whenLoaded('currentVersion')),
             'execution_count' => $this->execution_count,
             'last_executed_at' => $this->last_executed_at,
             'success_rate' => (float) $this->success_rate,
