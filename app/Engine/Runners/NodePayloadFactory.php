@@ -43,9 +43,13 @@ class NodePayloadFactory
         // Gather input data from predecessors
         $inputData = $context->gatherInputData($nodeId);
 
-        $credentialData = $context->getCredential($nodeId)?->data;
+        $credential = $context->getCredential($nodeId);
+        $credentialData = $credential?->data;
         if (is_string($credentialData)) {
             $credentialData = json_decode($credentialData, true);
+        }
+        if ($credential && is_array($credentialData) && !isset($credentialData['type'])) {
+            $credentialData['type'] = $credential->type;
         }
 
         return new NodePayload(

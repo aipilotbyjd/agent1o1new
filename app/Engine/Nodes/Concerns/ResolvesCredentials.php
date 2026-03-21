@@ -24,22 +24,48 @@ trait ResolvesCredentials
             return $request;
         }
 
-        $authType = $credentials['auth_type'] ?? $credentials['type'] ?? null;
+        $authType = strtolower((string) ($credentials['auth_type'] ?? $credentials['type'] ?? ''));
 
-        if ($authType === null && ! empty($credentials['access_token'])) {
-            $authType = 'bearer';
+        if (str_ends_with($authType, '_oauth2')) {
+            $authType = 'oauth2';
         }
 
-        return match (strtolower((string) $authType)) {
+        if ($authType === '' || ! in_array($authType, ['basic', 'api_key', 'service_account', 'http_header_auth', 'http_basic_auth'])) {
+            if (! empty($credentials['access_token']) || ! empty($credentials['bot_token']) || ! empty($credentials['api_key']) || ! empty($credentials['secret_key']) || ! empty($credentials['internal_integration_token']) || ! empty($credentials['auth_token'])) {
+                $credentials['access_token'] = $credentials['access_token'] ?? $credentials['bot_token'] ?? $credentials['api_key'] ?? $credentials['secret_key'] ?? $credentials['internal_integration_token'] ?? $credentials['auth_token'];
+                if (isset($credentials['api_key']) && ! empty($credentials['header_name'])) {
+                    $authType = 'api_key_header';
+                } else {
+                    $authType = 'bearer';
+                }
+            } elseif (! empty($credentials['service_account_json'])) {
+                $authType = 'service_account';
+            }
+        }
+
+        if ($authType === 'service_account' || ! empty($credentials['service_account_json'])) {
+            $serviceAccount = $credentials;
+            if (! empty($serviceAccount['service_account_json']) && is_string($serviceAccount['service_account_json'])) {
+                $parsed = json_decode($serviceAccount['service_account_json'], true);
+                if (is_array($parsed)) {
+                    $serviceAccount = array_merge($serviceAccount, $parsed);
+                }
+            }
+            return $request->withToken($this->resolveServiceAccountToken($serviceAccount, $credentials['scopes'] ?? []));
+        }
+
+        return match ($authType) {
             'bearer', 'oauth2' => $request->withToken($credentials['access_token'] ?? $credentials['token'] ?? ''),
-            'basic' => $request->withBasicAuth(
-                $credentials['username'] ?? '',
+            'basic', 'http_basic_auth' => $request->withBasicAuth(
+                $credentials['username'] ?? $credentials['user'] ?? '',
                 $credentials['password'] ?? '',
             ),
-            'api_key' => $request->withHeaders([
-                $credentials['header_name'] ?? 'Authorization' => $credentials['api_key'] ?? $credentials['value'] ?? '',
+            'api_key', 'http_query_auth' => $request->withQueryParameters([
+                $credentials['name'] ?? 'api_key' => $credentials['value'] ?? $credentials['api_key'] ?? '',
             ]),
-            'service_account' => $request->withToken($this->resolveServiceAccountToken($credentials, $credentials['scopes'] ?? [])),
+            'api_key_header', 'http_header_auth' => $request->withHeaders([
+                $credentials['header_name'] ?? $credentials['name'] ?? 'Authorization' => $credentials['api_key'] ?? $credentials['value'] ?? '',
+            ]),
             default => $request,
         };
     }
