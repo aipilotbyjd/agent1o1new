@@ -3,7 +3,6 @@
 namespace App\Ai\Tools;
 
 use App\Engine\NodeRegistry;
-use App\Engine\NodeResult;
 use App\Engine\Runners\NodePayload;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -49,7 +48,7 @@ class WorkflowNodeTool implements Tool
         $handler = new $handlerClass;
 
         $payload = new NodePayload(
-            nodeId: 'ai-agent-tool-' . uniqid(),
+            nodeId: 'ai-agent-tool-'.uniqid(),
             nodeType: $this->nodeType,
             nodeName: $this->toolName,
             config: array_merge(

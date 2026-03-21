@@ -17,7 +17,7 @@ use Stringable;
 #[Temperature(0.3)]
 #[MaxSteps(10)]
 #[Timeout(120)]
-class WorkflowBuilderAgent implements Agent, HasTools, HasStructuredOutput
+class WorkflowBuilderAgent implements Agent, HasStructuredOutput, HasTools
 {
     use Promptable;
 

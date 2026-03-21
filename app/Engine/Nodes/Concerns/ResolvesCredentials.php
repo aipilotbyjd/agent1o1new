@@ -51,6 +51,7 @@ trait ResolvesCredentials
                     $serviceAccount = array_merge($serviceAccount, $parsed);
                 }
             }
+
             return $request->withToken($this->resolveServiceAccountToken($serviceAccount, $credentials['scopes'] ?? []));
         }
 

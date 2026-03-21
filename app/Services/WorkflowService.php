@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Exceptions\ApiException;
-use App\Models\WorkflowVersion;
 use App\Models\User;
 use App\Models\Workflow;
+use App\Models\WorkflowVersion;
 use App\Models\Workspace;
 
 class WorkflowService
@@ -62,7 +62,7 @@ class WorkflowService
 
         if ($workflow->current_version_id) {
             $currentVersion = WorkflowVersion::find($workflow->current_version_id);
-            
+
             if ($currentVersion) {
                 $newVersion = $currentVersion->replicate(['id', 'workflow_id', 'version_number']);
                 $newVersion->workflow_id = $newWorkflow->id;

@@ -14,7 +14,7 @@ uses(RefreshDatabase::class);
 
 it('bootstraps billing state when creating a workspace', function () {
     $owner = User::factory()->create();
-    $service = new WorkspaceService();
+    $service = new WorkspaceService;
 
     // Create the free plan
     $freePlan = Plan::factory()->free()->create();
@@ -35,7 +35,7 @@ it('bootstraps billing state when creating a workspace', function () {
 
 it('creates a subscription with free plan on workspace creation', function () {
     $owner = User::factory()->create();
-    $service = new WorkspaceService();
+    $service = new WorkspaceService;
 
     // Create the free plan
     $freePlan = Plan::factory()->free()->create();
@@ -60,7 +60,7 @@ it('creates a subscription with free plan on workspace creation', function () {
 
 it('creates a current workspace usage period on workspace creation', function () {
     $owner = User::factory()->create();
-    $service = new WorkspaceService();
+    $service = new WorkspaceService;
 
     // Create the free plan
     $freePlan = Plan::factory()->free()->create();
@@ -82,7 +82,7 @@ it('creates a current workspace usage period on workspace creation', function ()
 
 it('initializes redis credits key on workspace creation', function () {
     $owner = User::factory()->create();
-    $service = new WorkspaceService();
+    $service = new WorkspaceService;
 
     // Create the free plan
     $freePlan = Plan::factory()->free()->create();
@@ -96,7 +96,7 @@ it('initializes redis credits key on workspace creation', function () {
 
 it('adds owner to workspace_members on workspace creation', function () {
     $owner = User::factory()->create();
-    $service = new WorkspaceService();
+    $service = new WorkspaceService;
 
     // Create the free plan
     $freePlan = Plan::factory()->free()->create();

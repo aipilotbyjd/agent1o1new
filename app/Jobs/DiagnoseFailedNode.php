@@ -49,7 +49,7 @@ class DiagnoseFailedNode implements ShouldQueue
             );
 
             $response = $agent->prompt(
-                "Diagnose the error and suggest fixes for this failed workflow node.",
+                'Diagnose the error and suggest fixes for this failed workflow node.',
             );
 
             AiFixSuggestion::query()->create([

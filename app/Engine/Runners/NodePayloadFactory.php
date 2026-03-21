@@ -48,7 +48,7 @@ class NodePayloadFactory
         if (is_string($credentialData)) {
             $credentialData = json_decode($credentialData, true);
         }
-        if ($credential && is_array($credentialData) && !isset($credentialData['type'])) {
+        if ($credential && is_array($credentialData) && ! isset($credentialData['type'])) {
             $credentialData['type'] = $credential->type;
         }
 

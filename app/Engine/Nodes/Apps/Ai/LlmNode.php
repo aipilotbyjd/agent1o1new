@@ -8,7 +8,6 @@ use App\Ai\Agents\SummarizerAgent;
 use App\Ai\Agents\TextClassifierAgent;
 use App\Ai\Agents\WorkflowAgent;
 use App\Ai\Tools\WorkflowNodeTool;
-use App\Engine\NodeResult;
 use App\Engine\Nodes\Apps\AppNode;
 use App\Engine\Runners\NodePayload;
 use App\Models\Node;
