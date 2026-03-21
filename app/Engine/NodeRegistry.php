@@ -59,10 +59,14 @@ class NodeRegistry
         // Utility
         'util.code' => 'code',
 
-        // AI — all AI nodes route to the OpenAI app node
-        'ai.llm' => 'openai.chat_completion',
-        'ai.text_classifier' => 'openai.text_classifier',
-        'ai.summarizer' => 'openai.summarizer',
+        // AI — route to new multi-provider LlmNode
+        'ai.llm' => 'ai.chat_completion',
+        'ai.text_classifier' => 'ai.text_classifier',
+        'ai.summarizer' => 'ai.summarizer',
+        'ai.sentiment' => 'ai.sentiment',
+        'ai.embeddings' => 'ai.embeddings',
+        'ai.image_generation' => 'ai.image_generation',
+        'ai.agent' => 'ai.agent',
 
         // Utility nodes resolve to their own handlers
         'util.template' => 'util.template',
@@ -203,7 +207,10 @@ class NodeRegistry
             'google_drive' => ['Google', 'GoogleDriveNode'],
             'google_calendar' => ['Google', 'GoogleCalendarNode'],
 
-            // OpenAI AI nodes
+            // AI — new multi-provider node (Laravel AI SDK)
+            'ai' => ['Ai', 'LlmNode'],
+
+            // OpenAI — kept for backward compatibility
             'openai' => ['OpenAi', 'OpenAiNode'],
 
             // Utility nodes

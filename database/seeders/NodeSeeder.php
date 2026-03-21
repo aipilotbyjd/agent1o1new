@@ -124,6 +124,7 @@ class NodeSeeder extends Seeder
                 'config_schema' => [
                     'type' => 'object',
                     'properties' => [
+                        'provider' => ['type' => 'string', 'enum' => ['openai', 'anthropic', 'gemini', 'groq', 'xai', 'mistral'], 'default' => 'openai'],
                         'model' => ['type' => 'string', 'default' => 'gpt-4o-mini'],
                         'system_prompt' => ['type' => 'string'],
                         'temperature' => ['type' => 'number', 'minimum' => 0, 'maximum' => 2, 'default' => 0.7],
@@ -165,6 +166,7 @@ class NodeSeeder extends Seeder
                     'type' => 'object',
                     'properties' => [
                         'categories' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of classification labels'],
+                        'provider' => ['type' => 'string', 'enum' => ['openai', 'anthropic', 'gemini', 'groq', 'xai', 'mistral'], 'default' => 'openai'],
                         'model' => ['type' => 'string', 'default' => 'gpt-4o-mini'],
                     ],
                     'required' => ['categories'],
@@ -201,6 +203,7 @@ class NodeSeeder extends Seeder
                     'properties' => [
                         'format' => ['type' => 'string', 'enum' => ['paragraph', 'bullets'], 'default' => 'paragraph'],
                         'max_length' => ['type' => 'integer', 'default' => 200],
+                        'provider' => ['type' => 'string', 'enum' => ['openai', 'anthropic', 'gemini', 'groq', 'xai', 'mistral'], 'default' => 'openai'],
                         'model' => ['type' => 'string', 'default' => 'gpt-4o-mini'],
                     ],
                 ],
@@ -215,6 +218,145 @@ class NodeSeeder extends Seeder
                     'type' => 'object',
                     'properties' => [
                         'summary' => ['type' => 'string'],
+                    ],
+                ],
+            ],
+            [
+                'category' => 'ai',
+                'type' => 'ai.sentiment',
+                'name' => 'Sentiment Analysis',
+                'description' => 'Analyze the sentiment of text — returns positive/negative/neutral with a confidence score and detected emotions.',
+                'icon' => 'heart',
+                'color' => '#8B5CF6',
+                'node_kind' => 'action',
+                'is_premium' => true,
+                'cost_hint_usd' => 0.0010,
+                'latency_hint_ms' => 2000,
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'provider' => ['type' => 'string', 'enum' => ['openai', 'anthropic', 'gemini', 'groq', 'xai', 'mistral'], 'default' => 'openai'],
+                        'model' => ['type' => 'string', 'default' => 'gpt-4o-mini'],
+                    ],
+                ],
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'text' => ['type' => 'string'],
+                    ],
+                    'required' => ['text'],
+                ],
+                'output_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'sentiment' => ['type' => 'string'],
+                        'score' => ['type' => 'number'],
+                        'emotions' => ['type' => 'array', 'items' => ['type' => 'string']],
+                    ],
+                ],
+            ],
+            [
+                'category' => 'ai',
+                'type' => 'ai.embeddings',
+                'name' => 'Embeddings',
+                'description' => 'Generate vector embeddings for text — useful for semantic search, clustering, and RAG pipelines.',
+                'icon' => 'cube-transparent',
+                'color' => '#8B5CF6',
+                'node_kind' => 'action',
+                'is_premium' => true,
+                'cost_hint_usd' => 0.0002,
+                'latency_hint_ms' => 1000,
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'provider' => ['type' => 'string', 'enum' => ['openai', 'gemini', 'cohere', 'mistral'], 'default' => 'openai'],
+                        'model' => ['type' => 'string', 'default' => 'text-embedding-3-small'],
+                        'dimensions' => ['type' => 'integer', 'default' => 1536],
+                    ],
+                ],
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'text' => ['type' => 'string'],
+                    ],
+                    'required' => ['text'],
+                ],
+                'output_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'embeddings' => ['type' => 'array'],
+                    ],
+                ],
+            ],
+            [
+                'category' => 'ai',
+                'type' => 'ai.image_generation',
+                'name' => 'Image Generation',
+                'description' => 'Generate images from text prompts using AI (DALL·E, Gemini, etc.).',
+                'icon' => 'photo',
+                'color' => '#8B5CF6',
+                'node_kind' => 'action',
+                'is_premium' => true,
+                'cost_hint_usd' => 0.0400,
+                'latency_hint_ms' => 10000,
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'provider' => ['type' => 'string', 'enum' => ['openai', 'gemini', 'xai'], 'default' => 'gemini'],
+                        'model' => ['type' => 'string'],
+                    ],
+                ],
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'prompt' => ['type' => 'string'],
+                    ],
+                    'required' => ['prompt'],
+                ],
+                'output_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'images' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'image_count' => ['type' => 'integer'],
+                    ],
+                ],
+            ],
+            [
+                'category' => 'ai',
+                'type' => 'ai.agent',
+                'name' => 'AI Agent',
+                'description' => 'Autonomous AI agent that decides which tools to use to complete a task. Configure a system prompt and select tools — the agent handles the rest.',
+                'icon' => 'sparkles',
+                'color' => '#7C3AED',
+                'node_kind' => 'action',
+                'is_premium' => true,
+                'cost_hint_usd' => 0.0500,
+                'latency_hint_ms' => 15000,
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'provider' => ['type' => 'string', 'enum' => ['openai', 'anthropic', 'gemini', 'groq', 'xai', 'mistral'], 'default' => 'openai'],
+                        'model' => ['type' => 'string', 'default' => 'gpt-4o'],
+                        'system_prompt' => ['type' => 'string'],
+                        'max_steps' => ['type' => 'integer', 'default' => 10, 'minimum' => 1, 'maximum' => 25],
+                        'tools' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Node types the agent can use as tools (e.g. slack.send_message, http.request)'],
+                        'temperature' => ['type' => 'number', 'default' => 0.7, 'minimum' => 0, 'maximum' => 2],
+                    ],
+                    'required' => ['system_prompt', 'tools'],
+                ],
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'prompt' => ['type' => 'string'],
+                    ],
+                    'required' => ['prompt'],
+                ],
+                'output_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'response' => ['type' => 'string'],
+                        'provider' => ['type' => 'string'],
+                        'model' => ['type' => 'string'],
                     ],
                 ],
             ],
